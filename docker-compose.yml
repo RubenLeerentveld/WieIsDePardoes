@@ -10,7 +10,7 @@ services:
     # Laat Portainer zien of het écht werkt: dit haalt game.json op, dus een
     # groene status betekent "nginx draait én de speldata wordt geserveerd".
     healthcheck:
-      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost/data/game.json"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/data/game.json"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -1,0 +1,12 @@
+# Normaliseer alles naar LF in de repository.
+* text=auto
+
+# Deze bestanden worden op Linux uitgevoerd of ingelezen: forceer LF, ook in de
+# working copy op Windows. nginx en Docker struikelen over CRLF.
+nginx.conf      text eol=lf
+Dockerfile      text eol=lf
+docker-compose.yml text eol=lf
+.dockerignore   text eol=lf
+
+# JSON wordt door de admin geëxporteerd en teruggezet: houd het consistent.
+*.json          text eol=lf
