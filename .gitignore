@@ -1,0 +1,11 @@
+# Lokale hulpmiddelen, niet nodig op de server
+.claude/
+
+# OS-rommel
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Exports die je vanuit de admin downloadt — hoort in data/, niet los
+widm-bundle.json
+*.log

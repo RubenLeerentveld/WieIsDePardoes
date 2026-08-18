@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inloggen · Wie is de Mol? — Efteling</title>
+<meta name="description" content="Meld je aan om je dossier te openen.">
+<meta name="theme-color" content="#0a1310">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Caveat:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Naar de inhoud</a>
+
+<main id="main" class="gate">
+  <div class="gate__inner anim-rise">
+
+    <h1 class="gate__title" style="font-size:clamp(1.6rem,6vw,2.2rem)">Wie is de Mol?</h1>
+    <span class="gate__place">Efteling</span>
+
+    <!-- Role switch -->
+    <div class="segmented gate__tabs mt-4" role="tablist" aria-label="Kies je rol">
+      <button class="segmented__item" type="button" role="tab" id="tab-speler"
+              aria-selected="true" aria-controls="panel-speler" style="flex:1">Speler</button>
+      <button class="segmented__item" type="button" role="tab" id="tab-spelleider"
+              aria-selected="false" aria-controls="panel-spelleider" style="flex:1">Spelleider</button>
+    </div>
+
+    <!-- Player sign-in -->
+    <section class="card card--pad-lg" id="panel-speler" role="tabpanel" aria-labelledby="tab-speler">
+      <div class="card__head">
+        <h2 class="card__title">Onderzoek hervatten</h2>
+      </div>
+
+      <form class="stack" id="form-player" novalidate>
+        <div class="field">
+          <label class="field__label" for="player-name">Naam</label>
+          <input class="input" type="text" id="player-name" name="name"
+                 autocomplete="username" autocapitalize="words" spellcheck="false"
+                 placeholder="Bijvoorbeeld: Ruben" required>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="player-pin">Pincode</label>
+          <input class="input input--pin" type="password" id="player-pin" name="pin"
+                 inputmode="numeric" autocomplete="current-password"
+                 maxlength="8" placeholder="••••" required>
+        </div>
+
+        <div id="player-error" role="alert"></div>
+
+        <button class="btn btn--primary btn--lg btn--block" type="submit">Onderzoek hervatten</button>
+      </form>
+
+      <p class="field__hint mt-3">Ken je je pincode niet meer? Vraag het de spelleider.</p>
+    </section>
+
+    <!-- Game master sign-in -->
+    <section class="card card--pad-lg" id="panel-spelleider" role="tabpanel" aria-labelledby="tab-spelleider" hidden>
+      <div class="card__head">
+        <h2 class="card__title">Het archief</h2>
+        <span class="chip chip--red">Alleen spelleider</span>
+      </div>
+
+      <form class="stack" id="form-admin" novalidate>
+        <div class="field">
+          <label class="field__label" for="admin-pin">Toegangscode</label>
+          <input class="input input--pin" type="password" id="admin-pin" name="pin"
+                 inputmode="numeric" autocomplete="current-password"
+                 maxlength="12" placeholder="••••" required>
+        </div>
+
+        <div id="admin-error" role="alert"></div>
+
+        <button class="btn btn--primary btn--lg btn--block" type="submit">Archief openen</button>
+      </form>
+    </section>
+
+    <div class="gate__foot">
+      <p class="whisper">Vertrouw niemand.</p>
+      <p class="mt-2"><a href="index.html" style="font-size:.8rem">Terug naar de poort</a></p>
+    </div>
+
+  </div>
+</main>
+
+<script src="js/app.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/game.js"></script>
+<script src="js/gate.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+[
+  {
+    "day": 1,
+    "title": "Het Sprookjesbos",
+    "subtitle": "De eerste sporen zijn gelegd.",
+    "date": "2026-08-15",
+    "available": true,
+    "resultsVisible": true,
+    "leaderboardVisible": true,
+    "questionIds": ["q101","q102","q103","q104","q105","q106","q107","q108","q109","q110"]
+  },
+  {
+    "day": 2,
+    "title": "Het Duister",
+    "subtitle": "Niet alles wat je zag, gebeurde ook.",
+    "date": "2026-08-16",
+    "available": true,
+    "resultsVisible": true,
+    "leaderboardVisible": true,
+    "questionIds": ["q201","q202","q203","q204","q205","q206","q207","q208","q209","q210"]
+  },
+  {
+    "day": 3,
+    "title": "De Betovering",
+    "subtitle": "Eén van jullie speelt een ander spel.",
+    "date": "2026-08-17",
+    "available": true,
+    "resultsVisible": false,
+    "leaderboardVisible": true,
+    "questionIds": ["q301","q302","q303","q304","q305","q306","q307","q308","q309","q310"]
+  },
+  {
+    "day": 4,
+    "title": "Het Vuur",
+    "subtitle": "De laatste kans om de Mol te ontmaskeren.",
+    "date": "2026-08-18",
+    "available": false,
+    "resultsVisible": false,
+    "leaderboardVisible": false,
+    "questionIds": ["q401","q402","q403","q404","q405","q406","q407","q408","q409","q410"]
+  }
+]

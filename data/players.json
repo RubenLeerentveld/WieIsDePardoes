@@ -1,0 +1,8 @@
+[
+  { "id": "ruben",  "name": "Ruben",  "pin": "1234", "initials": "RB", "joined": "2026-08-15", "note": "Houdt alles bij in een zwart notitieblok." },
+  { "id": "lisa",   "name": "Lisa",   "pin": "2468", "initials": "LS", "joined": "2026-08-15", "note": "Praat veel, zegt weinig." },
+  { "id": "thomas", "name": "Thomas", "pin": "1357", "initials": "TH", "joined": "2026-08-15", "note": "Neemt altijd de leiding. Of doet alsof." },
+  { "id": "sophie", "name": "Sophie", "pin": "8642", "initials": "SP", "joined": "2026-08-15", "note": "Weigert alles wat hard gaat." },
+  { "id": "mark",   "name": "Mark",   "pin": "7531", "initials": "MK", "joined": "2026-08-15", "note": "Filmt opvallend vaak de verkeerde kant op." },
+  { "id": "emma",   "name": "Emma",   "pin": "9876", "initials": "EM", "joined": "2026-08-15", "note": "Verdwijnt regelmatig zonder uitleg." }
+]

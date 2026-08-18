@@ -1,0 +1,119 @@
+/* ==========================================================================
+   animations.css — atmosphere and motion
+   Everything here is decorative: the reduced-motion block at the bottom
+   switches all of it off without breaking a single layout.
+   ========================================================================== */
+
+@keyframes fog-drift {
+  0%   { transform: translateX(-6%) translateY(0) scale(1); }
+  50%  { transform: translateX(6%) translateY(-2%) scale(1.08); }
+  100% { transform: translateX(-6%) translateY(0) scale(1); }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 22px rgba(201, 162, 39, 0.45)); }
+  42%      { opacity: 0.93; filter: drop-shadow(0 0 14px rgba(201, 162, 39, 0.3)); }
+  47%      { opacity: 1; filter: drop-shadow(0 0 26px rgba(201, 162, 39, 0.55)); }
+  55%      { opacity: 0.88; filter: drop-shadow(0 0 12px rgba(201, 162, 39, 0.28)); }
+  62%      { opacity: 1; filter: drop-shadow(0 0 24px rgba(201, 162, 39, 0.48)); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.8); }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-out {
+  to { opacity: 0; transform: translateX(24px); }
+}
+
+/* Test questions slide in from the direction of travel. */
+@keyframes q-in-next {
+  from { opacity: 0; transform: translateX(26px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes q-in-prev {
+  from { opacity: 0; transform: translateX(-26px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes seal-in {
+  0%   { opacity: 0; transform: scale(1.6) rotate(-16deg); }
+  60%  { opacity: 0.9; transform: scale(0.94) rotate(-5deg); }
+  100% { opacity: 0.72; transform: scale(1) rotate(-7deg); }
+}
+
+@keyframes score-glow {
+  0%, 100% { text-shadow: 0 0 26px rgba(201, 162, 39, 0.3); }
+  50%      { text-shadow: 0 0 46px rgba(226, 194, 104, 0.55); }
+}
+
+/* --------------------------------------------------------------------------
+   Applied classes
+   -------------------------------------------------------------------------- */
+.anim-rise {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger children of a section as it appears. */
+.anim-stagger > * {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.anim-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.anim-stagger > *:nth-child(3) { animation-delay: 0.14s; }
+.anim-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.anim-stagger > *:nth-child(5) { animation-delay: 0.26s; }
+.anim-stagger > *:nth-child(6) { animation-delay: 0.32s; }
+.anim-stagger > *:nth-child(n + 7) { animation-delay: 0.38s; }
+
+.anim-q-next { animation: q-in-next 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-q-prev { animation: q-in-prev 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-seal   { animation: seal-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-glow   { animation: score-glow 3.6s ease-in-out infinite; }
+
+/* Slow drift for the whole atmosphere layer on long pages. */
+.anim-float {
+  animation: fog-drift 40s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion — respect the system preference completely
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .atmos__fog,
+  .atmos__dust {
+    display: none;
+  }
+}

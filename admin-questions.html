@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vragen · Archief · Wie is de Mol?</title>
+<meta name="theme-color" content="#0a1310">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Caveat:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Naar de inhoud</a>
+<div id="site-header" data-nav="admin"></div>
+
+<main id="main" class="shell shell--wide page">
+
+  <div id="sync-banner"></div>
+
+  <section class="page-head">
+    <span class="eyebrow">Spelleider</span>
+    <h1 class="page-head__title">Vragen</h1>
+    <p class="page-head__sub">Het geheugen van het spel.</p>
+  </section>
+
+  <div class="card card--plain">
+    <div class="row row--between">
+      <div class="row">
+        <div class="field">
+          <label class="field__label" for="filter-day">Dag</label>
+          <select class="select" id="filter-day"></select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="filter-search">Zoeken</label>
+          <input class="input" type="search" id="filter-search" placeholder="Zoek in vragen…">
+        </div>
+      </div>
+      <button class="btn btn--primary" type="button" id="add-question">Nieuwe vraag</button>
+    </div>
+  </div>
+
+  <section class="mt-4" id="questions-list" aria-label="Vragenlijst"></section>
+
+</main>
+
+<div id="site-footer"></div>
+<div class="modal" id="editor-modal" hidden role="dialog" aria-modal="true" aria-labelledby="editor-title"></div>
+
+<script src="js/app.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/game.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/admin-editors.js"></script>
+</body>
+</html>

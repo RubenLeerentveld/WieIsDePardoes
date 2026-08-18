@@ -1,0 +1,32 @@
+services:
+  widm:
+    build: .
+    image: wie-is-de-mol-efteling
+    container_name: wie-is-de-mol
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+    # Laat Portainer zien of het écht werkt: dit haalt game.json op, dus een
+    # groene status betekent "nginx draait én de speldata wordt geserveerd".
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost/data/game.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    # De speldata zit in het image gebakken (zie Dockerfile). Nieuwe data
+    # uitrollen doe je met: data/*.json aanpassen, committen, pushen en in
+    # Portainer op "Pull and redeploy" klikken.
+    #
+    # Draai je lokaal en wil je data wijzigen zónder rebuild? Haal dan het
+    # commentaar hieronder weg; nginx leest dan rechtstreeks uit ./data.
+    #
+    # LET OP: laat dit uit staan bij een Portainer-stack uit Git. Relatieve
+    # paden werken daar alleen met "Enable relative path volumes" aan, en
+    # zonder die optie mount Docker een lege map over je data heen — de site
+    # toont dan "Het archief blijft gesloten".
+    #
+    # volumes:
+    #   - ./data:/usr/share/nginx/html/data:ro
