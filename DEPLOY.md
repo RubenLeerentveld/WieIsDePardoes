@@ -153,59 +153,86 @@ de spelers niet — precies het soort verwarring waar je op dag 4 geen zin in he
 
 ---
 
-## 6. Alternatief: image op Docker Hub
+## 6. Elke push een nieuw image op Docker Hub
 
-Standaard bouwt Portainer het image op de server zelf. Wil je in plaats daarvan
-een kant-en-klaar image van Docker Hub halen, dan gaat dat zo.
+Docker Hub kan sinds juni 2021 niet meer zelf bouwen vanaf een repository, en die
+functie verdwijnt op 1 april 2027. GitHub Actions bouwt daarom het image; Docker
+Hub is alleen de opslagplek. De workflow staat al klaar in
+`.github/workflows/docker-image.yml`.
 
-> **Docker Hub bouwt niet meer voor je.** De autobuild-functie is sinds juni 2021
-> alleen voor betaalde plannen en wordt op 1 april 2027 helemaal uitgezet. Docker
-> verwijst zelf naar GitHub Actions. Die doet hier dus het bouwwerk; Docker Hub is
-> alleen nog de opslagplek.
+> **Zet de Docker Hub-repository op Private.** Het image bevat
+> `data/players.json` en `data/questions.json`. Bij een openbaar image kan
+> iedereen het binnenhalen en alle pincodes en juiste antwoorden uitlezen, zonder
+> de URL van de site te kennen. Het gratis plan geeft je één privérepository.
 
-> **Maak de Docker Hub-repository privé.** Het image bevat `data/players.json` en
-> `data/questions.json`. Bij een openbaar image kan iedereen het binnenhalen en de
-> pincodes en antwoorden uitlezen — zonder ook maar de URL van de site te kennen.
-> Het gratis plan geeft je één privérepository; dat is genoeg.
+### Stap 1 — Docker Hub: repository
 
-### Eenmalig instellen
+<https://hub.docker.com/repository/create>
 
-1. **Docker Hub:** maak een repository aan, bijvoorbeeld `wie-is-de-mol`, en zet
-   de zichtbaarheid op **Private**.
-2. **Docker Hub:** ga naar *Account settings → Personal access tokens* en maak een
-   token met rechten **Read & Write**.
-3. **GitHub:** ga naar *Settings → Secrets and variables → Actions* en voeg toe:
+| Veld | Waarde |
+|---|---|
+| Name | `wie-is-de-mol` |
+| Visibility | **Private** |
 
-   | Type | Naam | Waarde |
-   |---|---|---|
-   | Secret | `DOCKERHUB_USERNAME` | je Docker Hub-gebruikersnaam |
-   | Secret | `DOCKERHUB_TOKEN` | het token uit stap 2 |
-   | Variable | `DOCKERHUB_REPO` | de repositorynaam, bv. `wie-is-de-mol` |
+De naam moet exact `wie-is-de-mol` zijn; de workflow gebruikt die.
 
-4. Push naar `main`, of start de workflow met de hand via *Actions → Docker image
-   → Run workflow*.
+### Stap 2 — Docker Hub: access token
 
-De workflow bouwt voor **amd64 én arm64**, dus het image draait ook op een NAS of
-Raspberry Pi. Bij *Actions* zie je na afloop welke tags gepubliceerd zijn.
+*Account settings → Personal access tokens → Generate new token*
 
-### Uitrollen in Portainer
+| Veld | Waarde |
+|---|---|
+| Description | `github-actions` |
+| Access permissions | **Read & Write** |
 
-1. Staat het image op privé: **Registries → Add registry → DockerHub**, met je
-   gebruikersnaam en hetzelfde token.
+Kopieer het token meteen. Je krijgt het daarna niet meer te zien.
+
+### Stap 3 — GitHub: twee secrets
+
+*Settings → Secrets and variables → Actions → New repository secret*
+
+| Name | Secret |
+|---|---|
+| `DOCKERHUB_USERNAME` | je Docker Hub-gebruikersnaam |
+| `DOCKERHUB_TOKEN` | het token uit stap 2 |
+
+Let op: de gebruikersnaam, niet het e-mailadres.
+
+### Stap 4 — Pushen
+
+```bash
+git push
+```
+
+Elke push naar `main` bouwt vanaf nu een nieuw image. Volg het onder **Actions**.
+De eerste keer duurt ongeveer twee tot drie minuten (arm64 gaat via emulatie),
+daarna korter.
+
+Klaar? Dan staat op Docker Hub:
+
+```
+<jouw-naam>/wie-is-de-mol:latest
+<jouw-naam>/wie-is-de-mol:<commit-sha>
+```
+
+### Stap 5 — Draaien in Portainer
+
+1. **Registries → Add registry → DockerHub**, met dezelfde gebruikersnaam en
+   hetzelfde token. Nodig omdat de repository privé is.
 2. **Stacks → Add stack → Web editor**, plak de inhoud van
    `docker-compose.registry.yml` en vervang `JOUW-DOCKERHUB-NAAM`.
 3. **Deploy the stack**.
 
-Bijwerken doe je daarna met *Pull and redeploy*, nadat de Action klaar is.
+Bij een volgende versie: wacht tot de Action groen is en klik op **Pull and
+redeploy**.
 
-### Is dit beter dan de stack uit Git?
+### Als het misgaat
 
-Voor deze reis waarschijnlijk niet. Je wijzigt elke avond `data/*.json`, en dan is
-de volgorde bij deze route: committen → pushen → wachten tot de Action klaar is →
-in Portainer opnieuw ophalen. Bij de stack uit Git (§2) valt de wachtstap weg.
-
-Het loont wel als je serverhardware traag is, of als je meerdere machines hetzelfde
-image wilt laten draaien.
+| Foutmelding in Actions | Oorzaak |
+|---|---|
+| `unauthorized: incorrect username or password` | `DOCKERHUB_TOKEN` klopt niet, of er staat een e-mailadres in `DOCKERHUB_USERNAME`. |
+| `denied: requested access to the resource is denied` | De repository op Docker Hub heet niet `wie-is-de-mol`, of het token heeft geen schrijfrechten. |
+| `repository does not exist` | Stap 1 overgeslagen: maak de repository eerst aan. |
 
 ---
 

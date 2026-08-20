@@ -1,34 +1,21 @@
-# Bouwt het image en zet het op Docker Hub.
+# Bouwt bij elke push naar main een nieuw image en zet het op Docker Hub.
 #
-# Docker Hub kan sinds juni 2021 niet meer zelf bouwen vanaf een repository
-# (alleen nog op betaalde plannen, en die functie verdwijnt op 1 april 2027).
-# GitHub Actions doet het werk; Docker Hub is alleen nog de opslagplek.
+# Docker Hub bouwt niet zelf meer vanaf een repository, dus GitHub Actions doet
+# het werk. Instellen kost twee secrets, zie DEPLOY.md §6.
 #
-# Eenmalig instellen — zie DEPLOY.md §7:
-#   1. Maak op Docker Hub een PRIVATE repository aan.
-#   2. Maak een access token aan (Account settings -> Personal access tokens).
-#   3. Zet in GitHub onder Settings -> Secrets and variables -> Actions:
-#        DOCKERHUB_USERNAME  je Docker Hub-gebruikersnaam
-#        DOCKERHUB_TOKEN     het token uit stap 2
-#      en onder Variables:
-#        DOCKERHUB_REPO      de naam van de repository, bv. wie-is-de-mol
+# Het image komt terecht op:  <DOCKERHUB_USERNAME>/wie-is-de-mol
 
 name: Docker image
 
 on:
   push:
     branches: [main]
-    # Alleen documentatie gewijzigd? Dan hoeft er niets gebouwd te worden.
-    paths-ignore:
-      - "**.md"
   workflow_dispatch:
 
 jobs:
   build:
     name: Bouwen en publiceren
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - name: Repository ophalen
@@ -48,30 +35,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tags bepalen
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPO || 'wie-is-de-mol' }}
-          tags: |
-            type=raw,value=latest
-            type=sha,format=short
-
       - name: Bouwen en pushen
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/wie-is-de-mol:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/wie-is-de-mol:${{ github.sha }}
 
       - name: Samenvatting
         run: |
           echo "### Image gepubliceerd" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "Trek de nieuwe versie binnen met 'Pull and redeploy' in Portainer." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ secrets.DOCKERHUB_USERNAME }}/wie-is-de-mol:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Klik in Portainer op **Pull and redeploy** om deze versie op te halen." >> $GITHUB_STEP_SUMMARY
