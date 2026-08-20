@@ -1,0 +1,28 @@
+# Variant die een kant-en-klaar image van Docker Hub haalt in plaats van zelf
+# te bouwen. Gebruik dit alleen als je de GitHub Action uit
+# .github/workflows/docker-image.yml hebt ingesteld.
+#
+# Het normale docker-compose.yml bouwt op de server en blijft gewoon werken;
+# dit bestand is een alternatief, geen vervanging.
+#
+# In Portainer: Stacks -> Add stack -> Web editor, plak dit, en vervang
+# JOUW-DOCKERHUB-NAAM. Staat het image op private, voeg dan eerst je Docker
+# Hub-inloggegevens toe onder Registries.
+
+services:
+  widm:
+    image: docker.io/JOUW-DOCKERHUB-NAAM/wie-is-de-mol:latest
+    container_name: wie-is-de-mol
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/data/game.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    # Geen volume: de speldata zit in het image. Nieuwe data uitrollen gaat via
+    # committen -> Action bouwt -> "Pull and redeploy" in Portainer.

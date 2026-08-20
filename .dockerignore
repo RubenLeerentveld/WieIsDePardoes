@@ -1,5 +1,7 @@
 .git
 .gitignore
+.gitattributes
+.github
 .claude
 README.md
 Dockerfile

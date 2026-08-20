@@ -1,0 +1,77 @@
+# Bouwt het image en zet het op Docker Hub.
+#
+# Docker Hub kan sinds juni 2021 niet meer zelf bouwen vanaf een repository
+# (alleen nog op betaalde plannen, en die functie verdwijnt op 1 april 2027).
+# GitHub Actions doet het werk; Docker Hub is alleen nog de opslagplek.
+#
+# Eenmalig instellen — zie DEPLOY.md §7:
+#   1. Maak op Docker Hub een PRIVATE repository aan.
+#   2. Maak een access token aan (Account settings -> Personal access tokens).
+#   3. Zet in GitHub onder Settings -> Secrets and variables -> Actions:
+#        DOCKERHUB_USERNAME  je Docker Hub-gebruikersnaam
+#        DOCKERHUB_TOKEN     het token uit stap 2
+#      en onder Variables:
+#        DOCKERHUB_REPO      de naam van de repository, bv. wie-is-de-mol
+
+name: Docker image
+
+on:
+  push:
+    branches: [main]
+    # Alleen documentatie gewijzigd? Dan hoeft er niets gebouwd te worden.
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Bouwen en publiceren
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Repository ophalen
+        uses: actions/checkout@v4
+
+      # QEMU en Buildx zijn nodig om naast amd64 ook arm64 te bouwen, zodat het
+      # image ook draait op een NAS of Raspberry Pi.
+      - name: QEMU instellen
+        uses: docker/setup-qemu-action@v3
+
+      - name: Buildx instellen
+        uses: docker/setup-buildx-action@v3
+
+      - name: Inloggen op Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tags bepalen
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPO || 'wie-is-de-mol' }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Bouwen en pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Samenvatting
+        run: |
+          echo "### Image gepubliceerd" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Trek de nieuwe versie binnen met 'Pull and redeploy' in Portainer." >> $GITHUB_STEP_SUMMARY

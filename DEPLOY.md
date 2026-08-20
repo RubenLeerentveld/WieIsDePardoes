@@ -153,7 +153,63 @@ de spelers niet — precies het soort verwarring waar je op dag 4 geen zin in he
 
 ---
 
-## 6. Zonder server, als het toch spannend wordt
+## 6. Alternatief: image op Docker Hub
+
+Standaard bouwt Portainer het image op de server zelf. Wil je in plaats daarvan
+een kant-en-klaar image van Docker Hub halen, dan gaat dat zo.
+
+> **Docker Hub bouwt niet meer voor je.** De autobuild-functie is sinds juni 2021
+> alleen voor betaalde plannen en wordt op 1 april 2027 helemaal uitgezet. Docker
+> verwijst zelf naar GitHub Actions. Die doet hier dus het bouwwerk; Docker Hub is
+> alleen nog de opslagplek.
+
+> **Maak de Docker Hub-repository privé.** Het image bevat `data/players.json` en
+> `data/questions.json`. Bij een openbaar image kan iedereen het binnenhalen en de
+> pincodes en antwoorden uitlezen — zonder ook maar de URL van de site te kennen.
+> Het gratis plan geeft je één privérepository; dat is genoeg.
+
+### Eenmalig instellen
+
+1. **Docker Hub:** maak een repository aan, bijvoorbeeld `wie-is-de-mol`, en zet
+   de zichtbaarheid op **Private**.
+2. **Docker Hub:** ga naar *Account settings → Personal access tokens* en maak een
+   token met rechten **Read & Write**.
+3. **GitHub:** ga naar *Settings → Secrets and variables → Actions* en voeg toe:
+
+   | Type | Naam | Waarde |
+   |---|---|---|
+   | Secret | `DOCKERHUB_USERNAME` | je Docker Hub-gebruikersnaam |
+   | Secret | `DOCKERHUB_TOKEN` | het token uit stap 2 |
+   | Variable | `DOCKERHUB_REPO` | de repositorynaam, bv. `wie-is-de-mol` |
+
+4. Push naar `main`, of start de workflow met de hand via *Actions → Docker image
+   → Run workflow*.
+
+De workflow bouwt voor **amd64 én arm64**, dus het image draait ook op een NAS of
+Raspberry Pi. Bij *Actions* zie je na afloop welke tags gepubliceerd zijn.
+
+### Uitrollen in Portainer
+
+1. Staat het image op privé: **Registries → Add registry → DockerHub**, met je
+   gebruikersnaam en hetzelfde token.
+2. **Stacks → Add stack → Web editor**, plak de inhoud van
+   `docker-compose.registry.yml` en vervang `JOUW-DOCKERHUB-NAAM`.
+3. **Deploy the stack**.
+
+Bijwerken doe je daarna met *Pull and redeploy*, nadat de Action klaar is.
+
+### Is dit beter dan de stack uit Git?
+
+Voor deze reis waarschijnlijk niet. Je wijzigt elke avond `data/*.json`, en dan is
+de volgorde bij deze route: committen → pushen → wachten tot de Action klaar is →
+in Portainer opnieuw ophalen. Bij de stack uit Git (§2) valt de wachtstap weg.
+
+Het loont wel als je serverhardware traag is, of als je meerdere machines hetzelfde
+image wilt laten draaien.
+
+---
+
+## 7. Zonder server, als het toch spannend wordt
 
 Deze site is puur statisch. Loopt het uitrollen vast en staat de reis voor de deur:
 sleep de projectmap naar <https://app.netlify.com/drop> of maak een project aan op
