@@ -63,13 +63,13 @@ Controleer bij *Containers* of `wie-is-de-mol` op **healthy** staat. Die
 healthcheck haalt `data/game.json` op, dus groen betekent dat nginx draait én dat
 de speldata daadwerkelijk geserveerd wordt.
 
-De site staat nu op `http://<server-ip>:8080`.
+De site staat nu op `http://<server-ip>:49153`.
 
 ---
 
 ## 3. Bereikbaar maken vanaf het park
 
-Poort 8080 op een thuisserver is vanaf mobiel internet niet bereikbaar. Drie
+Poort 49153 op een thuisserver is vanaf mobiel internet niet bereikbaar. Drie
 manieren om dat op te lossen, van meest naar minst aan te raden.
 
 ### a. Cloudflare Tunnel (geen poorten openzetten)

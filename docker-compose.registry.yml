@@ -14,7 +14,7 @@ services:
     image: docker.io/JOUW-DOCKERHUB-NAAM/wie-is-de-mol:latest
     container_name: wie-is-de-mol
     ports:
-      - "8080:80"
+      - "49153:80"
     restart: unless-stopped
 
     healthcheck:

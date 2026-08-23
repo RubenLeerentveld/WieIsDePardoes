@@ -4,7 +4,7 @@ services:
     image: wie-is-de-mol-efteling
     container_name: wie-is-de-mol
     ports:
-      - "8080:80"
+      - "49153:80"
     restart: unless-stopped
 
     # Laat Portainer zien of het écht werkt: dit haalt game.json op, dus een

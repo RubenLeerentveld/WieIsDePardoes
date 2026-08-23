@@ -91,13 +91,14 @@ Open daarna <http://localhost:8123>. Elke andere statische server werkt ook, bij
 docker compose up -d
 ```
 
-De site staat dan op <http://localhost:8080>.
+De site staat dan op <http://localhost:49153>.
 
 `docker-compose.yml` mount `./data` als read-only volume in de container. Je kunt dus een
 JSON-bestand op de host vervangen en de pagina verversen — geen rebuild, geen herstart.
 Alleen bij wijzigingen in HTML, CSS of JS is `docker compose up -d --build` nodig.
 
-Poort aanpassen? Wijzig `"8080:80"` in `docker-compose.yml`.
+Poort aanpassen? Wijzig `"49153:80"` in `docker-compose.yml`. De poort binnen de
+container blijft altijd 80.
 
 ---
 
