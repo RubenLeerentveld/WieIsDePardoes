@@ -54,6 +54,47 @@ window.WIDM = window.WIDM || {};
     return player.initials || WIDM.util.initials(player.name);
   }
 
+  function jokers() {
+    return data.get("jokers") || [];
+  }
+
+  function envelopes() {
+    return data.get("envelopes") || [];
+  }
+
+  /**
+   * Hoeveel jokers een speler op een dag heeft. Elke joker maakt straks een
+   * fout antwoord goed. Spelers zien hier niets van.
+   */
+  function jokersFor(playerId, day) {
+    return jokers()
+      .filter(function (joker) {
+        return joker.playerId === playerId && Number(joker.day) === Number(day);
+      })
+      .reduce(function (sum, joker) {
+        return sum + (Number(joker.count) || 0);
+      }, 0);
+  }
+
+  /** Spelers die nog in het spel zitten. */
+  function activePlayers() {
+    return players().filter(function (player) {
+      return !player.eliminated;
+    });
+  }
+
+  function eliminatedPlayers() {
+    return players().filter(function (player) {
+      return player.eliminated;
+    });
+  }
+
+  /** Wat de groep tot nu toe verdiend heeft. Geen maximum meer. */
+  function earned() {
+    const info = game();
+    return Number(info.earned !== undefined ? info.earned : info.pot) || 0;
+  }
+
   function testForDay(day) {
     return tests().find(function (test) {
       return Number(test.day) === Number(day);
@@ -111,20 +152,33 @@ window.WIDM = window.WIDM || {};
       });
   }
 
-  /** { correct, wrong, total, percentage } for a single submitted test. */
+  /**
+   * { correct, wrong, total, jokersUsed, percentage } voor een ingeleverde test.
+   *
+   * Jokers worden hier verrekend: elke joker maakt een fout antwoord alsnog
+   * goed. Dat gebeurt volledig op de achtergrond — de speler ziet zijn score
+   * toch nooit, en in de adminoverzichten staat erbij hoeveel jokers meetelden.
+   */
   function scoreResult(result) {
-    if (!result) return { correct: 0, wrong: 0, total: 0, percentage: 0 };
+    if (!result) return { correct: 0, wrong: 0, total: 0, jokersUsed: 0, percentage: 0 };
+
     const list = questionsForTest(testForDay(result.day));
     let correct = 0;
     list.forEach(function (question, index) {
       if (result.answers[index] === question.correctAnswer) correct += 1;
     });
+
     const total = list.length;
+    const jokersUsed = Math.min(total - correct, jokersFor(result.playerId, result.day));
+    const scored = correct + jokersUsed;
+
     return {
-      correct: correct,
-      wrong: total - correct,
+      correct: scored,
+      wrong: total - scored,
       total: total,
-      percentage: total ? Math.round((correct / total) * 100) : 0,
+      raw: correct,
+      jokersUsed: jokersUsed,
+      percentage: total ? Math.round((scored / total) * 100) : 0,
     };
   }
 
@@ -302,13 +356,7 @@ window.WIDM = window.WIDM || {};
     return resultsForPlayer(playerId).length;
   }
 
-  /** How full the pot is, 0–100. */
-  function potProgress() {
-    const info = game();
-    const max = Number(info.maxPot) || 0;
-    if (!max) return 0;
-    return Math.min(100, Math.round((Number(info.pot) || 0) / max * 100));
-  }
+
 
   /* ------------------------------------------------------------------------
      Submitting a test
@@ -365,14 +413,31 @@ window.WIDM = window.WIDM || {};
     return match ? match.text : VERDICTS[VERDICTS.length - 1].text;
   }
 
-  /** A rough "how much did this player miss" reading, for atmosphere. */
-  function suspicion(percentage) {
-    const level = 100 - percentage;
-    let label = "Onopvallend";
-    if (level >= 70) label = "Zeer verdacht";
-    else if (level >= 50) label = "Verdacht";
-    else if (level >= 30) label = "Twijfelachtig";
-    return { level: level, label: label };
+  /**
+   * De blinde vlek: hoeveel er ongeveer langs je heen ging.
+   *
+   * Bewust grof. De uitkomst valt in een van vijf brede banden en de balk
+   * krijgt een vaste breedte per band, zodat je er je werkelijke score niet
+   * uit kunt terugrekenen. Het is sfeer, geen rapportcijfer.
+   */
+  const BANDS = [
+    { upTo: 15, level: 14, label: "Jou ontgaat weinig" },
+    { upTo: 32, level: 34, label: "Je let goed op" },
+    { upTo: 52, level: 56, label: "Er glipt het een en ander langs" },
+    { upTo: 72, level: 76, label: "Je kijkt vaak de andere kant op" },
+    { upTo: 101, level: 93, label: "Je hebt bijna niets gezien" },
+  ];
+
+  function blindSpot(playerId) {
+    const stats = playerStats(playerId);
+    if (!stats.totalQuestions) {
+      return { level: 0, label: "Nog niets vastgelegd", known: false };
+    }
+    const missed = 100 - stats.percentage;
+    const band = BANDS.find(function (entry) {
+      return missed < entry.upTo;
+    }) || BANDS[BANDS.length - 1];
+    return { level: band.level, label: band.label, known: true };
   }
 
   WIDM.game = {
@@ -384,6 +449,12 @@ window.WIDM = window.WIDM || {};
     results: results,
     playerById: playerById,
     initialsOf: initialsOf,
+    jokers: jokers,
+    jokersFor: jokersFor,
+    envelopes: envelopes,
+    activePlayers: activePlayers,
+    eliminatedPlayers: eliminatedPlayers,
+    earned: earned,
     questionById: questionById,
     testForDay: testForDay,
     questionsForDay: questionsForDay,
@@ -400,9 +471,8 @@ window.WIDM = window.WIDM || {};
     testStatus: testStatus,
     openTestFor: openTestFor,
     completedCount: completedCount,
-    potProgress: potProgress,
     submitTest: submitTest,
     verdict: verdict,
-    suspicion: suspicion,
+    blindSpot: blindSpot,
   };
 })(window.WIDM);

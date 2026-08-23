@@ -4,25 +4,22 @@
 
 FROM nginx:1.27-alpine
 
-# Wachtwoord waarmee de spelleider naar /live/ mag schrijven. Overschrijf dit
-# bij het bouwen:  docker build --build-arg WRITE_PASSWORD=iets-eigens .
-ARG WRITE_USER=spelleider
-ARG WRITE_PASSWORD=pardoes-archief
-
 # Zonder de DAV-module accepteert nginx geen PUT en kan de site niets opslaan.
 # Liever nu hard falen dan later een stille 405 in het park.
 RUN nginx -V 2>&1 | tr ' ' '\n' | grep -q -- '--with-http_dav_module' \
     || (echo "FOUT: deze nginx is gebouwd zonder --with-http_dav_module" >&2 && exit 1)
 
-# htpasswd-bestand aanmaken. nginx begrijpt {SHA} sinds 1.3.13, dus we hebben
-# apache2-utils niet nodig; openssl kan weer weg na gebruik.
-RUN apk add --no-cache openssl \
-    && printf '%s:{SHA}%s\n' "$WRITE_USER" \
-       "$(printf '%s' "$WRITE_PASSWORD" | openssl sha1 -binary | openssl base64)" \
-       > /etc/nginx/.htpasswd \
-    && chmod 640 /etc/nginx/.htpasswd \
-    && chown root:nginx /etc/nginx/.htpasswd \
-    && apk del openssl
+# openssl blijft staan: het entrypoint gebruikt het om bij elke start het
+# htpasswd-bestand op te bouwen uit de omgevingsvariabelen.
+RUN apk add --no-cache openssl
+
+# Wachtwoord waarmee de spelleider mag opslaan. Aanpasbaar zonder rebuild:
+# zet WRITE_PASSWORD in Container Manager en herstart de container.
+ENV WRITE_USER=spelleider
+ENV WRITE_PASSWORD=password
+
+COPY docker-entrypoint.d/10-htpasswd.sh /docker-entrypoint.d/10-htpasswd.sh
+RUN chmod +x /docker-entrypoint.d/10-htpasswd.sh
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
