@@ -366,7 +366,7 @@ window.WIDM = window.WIDM || {};
       '<header class="site-header">' +
       '<div class="shell shell--wide site-header__inner">' +
       '<a class="brand" href="' + (kind === "admin" ? "admin.html" : "dashboard.html") + '">' +
-      icon("crest", "brand__mark") +
+      '<span class="seal seal--sm brand__mark"><img src="assets/logo.png" alt=""></span>' +
       '<span class="brand__text">' +
       '<span class="brand__title">Wie is Pardoes?</span>' +
       '<span class="brand__sub">Efteling</span>' +

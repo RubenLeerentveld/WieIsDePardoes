@@ -1529,3 +1529,49 @@
   text-transform: uppercase;
   color: var(--text-faint);
 }
+
+
+/* --------------------------------------------------------------------------
+   Zegel — het logo op een perkamenten schijf
+
+   Het logo is donkere lijnkunst en zou wegvallen tegen het donkere bos.
+   Op perkament leest het als een stempel op papier, wat bij de rest past.
+   Ontbreekt assets/logo.png, dan blijft er een lege schijf staan in plaats
+   van een kapot-afbeeldingicoon: de img heeft bewust alt="".
+   -------------------------------------------------------------------------- */
+.seal {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 34% 28%, var(--parchment-100) 0%, var(--parchment-200) 55%, var(--parchment-400) 100%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.5),
+    var(--shadow-md),
+    inset 0 0 18px rgba(120, 92, 46, 0.28);
+}
+
+.seal img {
+  width: 100%;
+  height: 100%;
+  padding: 6%;
+  object-fit: contain;
+  display: block;
+}
+
+.seal--sm { width: 38px; height: 38px; }
+.seal--lg { width: clamp(104px, 30vw, 140px); height: clamp(104px, 30vw, 140px); }
+
+/* Kaarslicht eromheen op de voorpagina */
+.gate__seal {
+  margin: 0 auto var(--sp-4);
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.55),
+    0 0 42px rgba(201, 162, 39, 0.28),
+    var(--shadow-deep),
+    inset 0 0 20px rgba(120, 92, 46, 0.3);
+  animation: flicker 5.5s ease-in-out infinite;
+}
