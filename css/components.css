@@ -1410,3 +1410,21 @@
     flex: 1 1 auto;
   }
 }
+
+
+/* Afgevallen verdachten blijven op het bord hangen, maar uitgebleekt en
+   doorgestreept — je moet kunnen zien wie er al af is. */
+.suspect--out {
+  filter: grayscale(0.85);
+  opacity: 0.55;
+}
+
+.suspect--out .suspect__photo {
+  filter: grayscale(1) brightness(0.7);
+}
+
+.suspect--out .suspect__name {
+  text-decoration: line-through;
+  text-decoration-color: rgba(140, 36, 56, 0.8);
+  text-decoration-thickness: 2px;
+}

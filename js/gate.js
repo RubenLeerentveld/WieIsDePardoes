@@ -24,8 +24,8 @@
       '<p class="stat__value numeral anim-glow" style="margin-top:.4rem">Dag ' + util.esc(info.currentDay) + "</p>" +
       '<div class="ornament mt-3"><span class="ornament__glyph">✦</span></div>' +
       '<div class="grid grid--2 mt-3" style="gap:.9rem">' +
-      '<div><span class="stat__label">In de pot</span>' +
-      '<span class="stat__value stat__value--sm numeral">' + util.esc(util.money(info.pot)) + "</span></div>" +
+      '<div><span class="stat__label">Tot nu toe verdiend</span>' +
+      '<span class="stat__value stat__value--sm numeral">' + util.esc(util.money(WIDM.game.earned())) + "</span></div>" +
       '<div><span class="stat__label">Tests geopend</span>' +
       '<span class="stat__value stat__value--sm numeral stat__value--plain">' + openTests + " / " + WIDM.game.tests().length + "</span></div>" +
       "</div>";

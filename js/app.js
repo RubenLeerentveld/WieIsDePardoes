@@ -319,9 +319,10 @@ window.WIDM = window.WIDM || {};
   const PLAYER_NAV = [
     { href: "dashboard.html", label: "Dossier" },
     { href: "test.html", label: "De Test" },
-    { href: "results.html", label: "Uitslagen" },
+    { href: "archief.html", label: "Archief" },
+    { href: "results.html", label: "Antwoorden" },
     { href: "stats.html", label: "Statistieken" },
-    { href: "leaderboard.html", label: "Klassement" },
+    { href: "leaderboard.html", label: "Het Bord" },
   ];
 
   const ADMIN_NAV = [
@@ -329,6 +330,7 @@ window.WIDM = window.WIDM || {};
     { href: "admin-questions.html", label: "Vragen" },
     { href: "admin-tests.html", label: "Tests" },
     { href: "admin-players.html", label: "Spelers" },
+    { href: "admin-archief.html", label: "Enveloppen" },
     { href: "admin-game.html", label: "Spel" },
   ];
 

@@ -249,17 +249,19 @@
 
     state.finished = true;
     screenDone(result);
+
+    // Naar de server, zodat de spelleider hem meteen heeft. Lukt dat niet,
+    // dan blijft de inzending lokaal staan en meldt de site dat eerlijk.
+    WIDM.data.submitToInbox(result).catch(function (error) {
+      console.warn("[WIDM] inzending niet verstuurd", error);
+      WIDM.toast("Je test is opgeslagen op dit toestel, maar nog niet verstuurd.", "error");
+    });
   }
 
   /* ------------------------------------------------------------------------
      Completion
      ------------------------------------------------------------------------ */
   function screenDone(result) {
-    const score = G.scoreResult(result);
-    const settings = G.settings();
-    const showScore = state.test.resultsVisible && settings.showScoresToPlayers;
-    const rank = settings.showRankToPlayers ? G.rankOf(state.session.id) : null;
-
     root().innerHTML =
       '<div class="card card--accent card--pad-lg anim-rise text-center">' +
       '<div class="anim-seal" style="display:inline-block"><span class="stamp stamp--gold">Ingeleverd</span></div>' +
@@ -267,19 +269,12 @@
       '<p class="muted mt-2">Dag ' + util.esc(state.test.day) + " · " + util.esc(state.test.title) +
       " · " + util.esc(util.duration(result.durationSeconds)) + " minuten</p>" +
       '<div class="ornament mt-4"><span class="ornament__glyph">✦</span></div>' +
-      (showScore
-        ? '<p class="stat__value numeral anim-glow" style="font-size:clamp(2.6rem,12vw,4.2rem);margin-top:1rem">' +
-          score.correct + " / " + score.total + "</p>" +
-          '<p class="whisper">' + util.esc(G.verdict(score.percentage)) + "</p>" +
-          (rank
-            ? '<div class="mt-4"><span class="stat__label">Plaats in het klassement</span>' +
-              '<p class="stat__value stat__value--sm numeral">' + rank + "e</p></div>"
-            : "")
-        : '<p class="whisper mt-4">Je waarnemingen zijn verzegeld.</p>' +
-          '<p class="muted mt-2">De spelleider bepaalt wanneer de uitslag zichtbaar wordt.</p>') +
+      '<p class="whisper mt-4">Je waarnemingen zijn verzegeld.</p>' +
+      '<p class="muted mt-2">Je hoort niet hoeveel je goed had. Anders zou je weten ' +
+      "of je verdenking klopt — en dat is nou juist het spel.</p>" +
       '<div class="stack mt-5">' +
       '<a class="btn btn--primary btn--block" href="dashboard.html">Terug naar je dossier</a>' +
-      '<a class="btn btn--ghost btn--block" href="results.html?dag=' + util.esc(state.test.day) + '">Bekijk je uitslagen</a>' +
+      '<a class="btn btn--ghost btn--block" href="archief.html">Naar het archief</a>' +
       "</div></div>";
 
     WIDM.toast("Test van dag " + state.test.day + " ingeleverd.");

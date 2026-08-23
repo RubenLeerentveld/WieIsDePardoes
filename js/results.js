@@ -1,5 +1,9 @@
 /* ==========================================================================
-   results.js — per-day results for the signed-in player
+   results.js — je eigen ingeleverde antwoorden, per dag
+
+   Geen scores. Deze pagina laat zien wát je hebt geantwoord, zodat je je
+   eigen redenering kunt teruglezen. Of het goed was hoor je pas als de
+   spelleider aan het eind alles vrijgeeft (settings.revealEverything).
    ========================================================================== */
 
 (function (WIDM) {
@@ -13,10 +17,9 @@
   let activeDay = null;
 
   function renderTabs() {
-    const tests = G.tests();
     util.fill(
       "#day-tabs",
-      tests
+      G.tests()
         .map(function (test) {
           const done = !!G.resultFor(session.id, test.day);
           return (
@@ -37,64 +40,35 @@
     });
   }
 
-  /** The score header for one day. */
-  function scoreCard(test, result) {
-    const score = G.scoreResult(result);
-    const settings = G.settings();
-    const visible = test.resultsVisible && settings.showScoresToPlayers;
-    const rank = G.dayStandings(test.day).find(function (row) {
-      return row.player.id === session.id;
-    });
-
-    if (!visible) {
-      return (
-        '<div class="card card--pad-lg anim-rise">' +
-        '<div class="row row--between">' +
-        '<span class="eyebrow">Dag ' + util.esc(test.day) + " · " + util.esc(test.title) + "</span>" +
-        '<span class="stamp">Verzegeld</span>' +
-        "</div>" +
-        '<h2 class="mt-4">Je uitslag is nog verzegeld</h2>' +
-        '<p class="whisper mt-2">Ingeleverd op ' + util.esc(util.dateTime(result.submittedAt)) + "." +
-        "</p>" +
-        '<p class="muted mt-3">De spelleider geeft deze dag later vrij.</p>' +
-        "</div>"
-      );
-    }
-
+  function headerCard(test, result) {
     return (
-      '<div class="card card--accent card--pad-lg anim-rise">' +
+      '<div class="card card--pad-lg anim-rise">' +
       '<div class="row row--between">' +
       '<span class="eyebrow">Dag ' + util.esc(test.day) + " · " + util.esc(test.title) + "</span>" +
-      '<span class="chip chip--green"><span class="chip__dot"></span>Voltooid</span>' +
+      '<span class="chip chip--green"><span class="chip__dot"></span>Vastgelegd</span>' +
       "</div>" +
-      '<div class="grid grid--3 mt-4">' +
-      '<div class="stat stat--hero"><span class="stat__label">Score</span>' +
-      '<span class="stat__value numeral">' + score.correct + " / " + score.total + "</span></div>" +
-      '<div class="stat"><span class="stat__label">Fout</span>' +
-      '<span class="stat__value stat__value--sm numeral stat__value--plain">' + score.wrong + "</span></div>" +
-      '<div class="stat"><span class="stat__label">Tijd</span>' +
-      '<span class="stat__value stat__value--sm numeral stat__value--plain">' +
-      util.esc(util.duration(result.durationSeconds)) + "</span></div>" +
-      (rank
-        ? '<div class="stat"><span class="stat__label">Plaats deze dag</span>' +
-          '<span class="stat__value stat__value--sm numeral">' + rank.rank + "e</span></div>"
-        : "") +
-      "</div>" +
-      '<p class="whisper mt-4 text-center">' + util.esc(G.verdict(score.percentage)) + "</p>" +
+      '<h2 class="mt-3">Wat je hebt vastgelegd</h2>' +
+      '<p class="mt-2 muted">Ingeleverd op ' + util.esc(util.dateTime(result.submittedAt)) +
+      " · " + util.esc(util.duration(result.durationSeconds)) + " minuten.</p>" +
+      '<p class="whisper mt-3">Hoeveel je goed had blijft geheim. Anders wist je of je op de juiste weg zit.</p>' +
       "</div>"
     );
   }
 
-  /** Question-by-question breakdown. */
-  function reviewCard(test, result) {
-    const settings = G.settings();
-    const visible = test.resultsVisible && settings.showScoresToPlayers;
-    if (!visible) return "";
+  function answersCard(test, result) {
+    const reveal = !!G.settings().revealEverything;
 
     const rows = G.reviewResult(result)
       .map(function (entry, index) {
-        const reveal = settings.showCorrectAnswers;
-        const given = entry.given >= 0 ? LETTERS[entry.given] + ". " + entry.question.answers[entry.given] : "Niet beantwoord";
+        const given = entry.given >= 0
+          ? LETTERS[entry.given] + ". " + entry.question.answers[entry.given]
+          : "Niet beantwoord";
+
+        // Alleen bij de eindonthulling laten we zien wat juist was.
+        const verdict = reveal
+          ? '<span class="review__mark ' + (entry.isCorrect ? "review__mark--ok" : "review__mark--no") + '">' +
+            (entry.isCorrect ? "Juist" : "Fout") + "</span>"
+          : '<span class="review__mark faint">Verzegeld</span>';
 
         return (
           '<div class="review__item">' +
@@ -109,9 +83,7 @@
             ? '<div class="faint" style="font-size:.82rem;font-style:italic">' +
               util.esc(entry.question.explanation) + "</div>"
             : "") +
-          "</div>" +
-          '<span class="review__mark ' + (entry.isCorrect ? "review__mark--ok" : "review__mark--no") + '">' +
-          (entry.isCorrect ? "Juist" : "Fout") + "</span>" +
+          "</div>" + verdict +
           "</div>"
         );
       })
@@ -120,41 +92,12 @@
     return (
       '<div class="card card--pad-lg">' +
       '<div class="card__head"><h2 class="card__title">Vraag voor vraag</h2>' +
-      (settings.showCorrectAnswers
-        ? '<span class="chip chip--gold">Antwoorden vrijgegeven</span>'
+      (reveal
+        ? '<span class="chip chip--gold">Alles vrijgegeven</span>'
         : '<span class="chip">Antwoorden nog geheim</span>') +
       "</div>" +
       '<div class="review">' + rows + "</div>" +
       "</div>"
-    );
-  }
-
-  /** Everyone's score for this day, once the day is released. */
-  function dayBoardCard(test) {
-    if (!test.resultsVisible || !G.settings().leaderboardVisible) return "";
-
-    const rows = G.dayStandings(test.day);
-    if (!rows.length) return "";
-
-    return (
-      '<div class="card card--pad-lg">' +
-      '<div class="card__head"><h2 class="card__title">Deze dag</h2></div>' +
-      '<div class="rank">' +
-      rows
-        .map(function (row) {
-          const me = row.player.id === session.id;
-          return (
-            '<div class="rank__row' + (me ? " rank__row--me" : "") + '">' +
-            '<span class="rank__pos numeral">' + util.pad2(row.rank) + "</span>" +
-            '<span class="avatar avatar--sm rank__avatar">' + util.esc(G.initialsOf(row.player)) + "</span>" +
-            '<span class="rank__body"><span class="rank__name">' + util.esc(row.player.name) + "</span>" +
-            '<span class="rank__meta">' + util.esc(util.duration(row.result.durationSeconds)) + " min</span></span>" +
-            '<span class="rank__score numeral">' + row.score.correct + "/" + row.score.total + "</span>" +
-            "</div>"
-          );
-        })
-        .join("") +
-      "</div></div>"
     );
   }
 
@@ -191,7 +134,7 @@
       return;
     }
 
-    host.innerHTML = scoreCard(test, result) + reviewCard(test, result) + dayBoardCard(test);
+    host.innerHTML = headerCard(test, result) + answersCard(test, result);
   }
 
   WIDM.page({
@@ -199,7 +142,6 @@
     run: function (context) {
       session = context.session;
 
-      const requested = Number(new URLSearchParams(window.location.search).get("dag"));
       const tests = G.tests();
       if (!tests.length) {
         util.fill(
@@ -211,7 +153,7 @@
         return;
       }
 
-      // Default to the most recent day the player actually completed.
+      const requested = Number(new URLSearchParams(window.location.search).get("dag"));
       const done = G.resultsForPlayer(session.id);
       activeDay = requested && G.testForDay(requested)
         ? requested
