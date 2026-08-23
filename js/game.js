@@ -414,30 +414,43 @@ window.WIDM = window.WIDM || {};
   }
 
   /**
-   * De blinde vlek: hoeveel er ongeveer langs je heen ging.
+   * Jouw kompas: welke namen jij het vaakst hebt aangewezen.
    *
-   * Bewust grof. De uitkomst valt in een van vijf brede banden en de balk
-   * krijgt een vaste breedte per band, zodat je er je werkelijke score niet
-   * uit kunt terugrekenen. Het is sfeer, geen rapportcijfer.
+   * Bewust NIET afgeleid van goed of fout — dat zou verraden of je verdenking
+   * klopt. Dit telt alleen de antwoorden die je zelf gaf en die een spelersnaam
+   * zijn. Vragen met een getal of een kleur als antwoord tellen niet mee.
    */
-  const BANDS = [
-    { upTo: 15, level: 14, label: "Jou ontgaat weinig" },
-    { upTo: 32, level: 34, label: "Je let goed op" },
-    { upTo: 52, level: 56, label: "Er glipt het een en ander langs" },
-    { upTo: 72, level: 76, label: "Je kijkt vaak de andere kant op" },
-    { upTo: 101, level: 93, label: "Je hebt bijna niets gezien" },
-  ];
+  function compass(playerId) {
+    const names = {};
+    players().forEach(function (player) {
+      names[player.name.toLowerCase()] = player.name;
+    });
 
-  function blindSpot(playerId) {
-    const stats = playerStats(playerId);
-    if (!stats.totalQuestions) {
-      return { level: 0, label: "Nog niets vastgelegd", known: false };
-    }
-    const missed = 100 - stats.percentage;
-    const band = BANDS.find(function (entry) {
-      return missed < entry.upTo;
-    }) || BANDS[BANDS.length - 1];
-    return { level: band.level, label: band.label, known: true };
+    const tally = {};
+    let total = 0;
+
+    resultsForPlayer(playerId).forEach(function (result) {
+      const list = questionsForTest(testForDay(result.day));
+      list.forEach(function (question, index) {
+        const given = result.answers[index];
+        if (given === undefined || given < 0) return;
+        const answer = question.answers[given];
+        const match = names[String(answer || "").toLowerCase()];
+        if (!match) return;
+        tally[match] = (tally[match] || 0) + 1;
+        total += 1;
+      });
+    });
+
+    const rows = Object.keys(tally)
+      .map(function (name) {
+        return { name: name, count: tally[name], share: Math.round((tally[name] / total) * 100) };
+      })
+      .sort(function (a, b) {
+        return b.count - a.count || a.name.localeCompare(b.name, "nl");
+      });
+
+    return { rows: rows, total: total, leader: rows.length ? rows[0] : null };
   }
 
   WIDM.game = {
@@ -473,6 +486,6 @@ window.WIDM = window.WIDM || {};
     completedCount: completedCount,
     submitTest: submitTest,
     verdict: verdict,
-    blindSpot: blindSpot,
+    compass: compass,
   };
 })(window.WIDM);

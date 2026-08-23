@@ -144,7 +144,7 @@
   function renderExtra(session) {
     const player = G.playerById(session.id);
     const settings = G.settings();
-    const spot = G.blindSpot(session.id);
+    const compass = G.compass(session.id);
 
     util.fill(
       "#stats-extra",
@@ -161,14 +161,26 @@
       (player && player.note ? '<p class="whisper mt-3">' + util.esc(player.note) + "</p>" : "") +
       "</div>" +
 
-      (settings.showBlindSpot
+      (settings.showCompass && compass.leader
         ? '<div class="card">' +
-          '<div class="card__head"><h2 class="card__title">Blinde vlek</h2></div>' +
-          '<div class="suspicion">' +
-          '<div class="suspicion__track"><div class="suspicion__fill" style="width:' + spot.level + '%"></div></div>' +
-          '<span class="suspicion__label">' + util.esc(spot.label) + "</span>" +
+          '<div class="card__head"><h2 class="card__title">Jouw kompas</h2></div>' +
+          '<p class="whisper" style="font-size:1.5rem">Jouw vinger wijst het vaakst naar ' +
+          util.esc(compass.leader.name) + ".</p>" +
+          '<div class="bars mt-3">' +
+          compass.rows
+            .slice(0, 5)
+            .map(function (row) {
+              return (
+                '<div class="bar">' +
+                '<span class="bar__label">' + util.esc(row.name) + "</span>" +
+                '<div class="bar__track"><div class="bar__fill" style="width:' + row.share + '%"></div></div>' +
+                '<span class="bar__value">' + row.count + "×</span></div>"
+              );
+            })
+            .join("") +
           "</div>" +
-          '<p class="field__hint mt-2">Een grove indruk, meer niet.</p></div>'
+          '<p class="field__hint mt-3">Alleen gebaseerd op wie jij hebt aangewezen. ' +
+          "Niet op of het klopte.</p></div>"
         : "")
     );
   }

@@ -210,20 +210,8 @@
 
   function renderNote(session) {
     const settings = G.settings();
-    const spot = G.blindSpot(session.id);
     const player = G.playerById(session.id);
-
-    const meter = settings.showBlindSpot
-      ? '<div class="card card--plain mt-4">' +
-        '<div class="card__head"><h2 class="card__title">Blinde vlek</h2></div>' +
-        '<div class="suspicion">' +
-        '<div class="suspicion__track"><div class="suspicion__fill" style="width:' + spot.level + '%"></div></div>' +
-        '<span class="suspicion__label">' + util.esc(spot.label) + "</span>" +
-        "</div>" +
-        '<p class="field__hint mt-2">Een grove indruk van hoeveel er langs je heen ging. ' +
-        "Reken er niets aan af.</p>" +
-        "</div>"
-      : "";
+    const meter = settings.showCompass ? compassCard(session) : "";
 
     util.fill(
       "#note-card",
@@ -234,6 +222,45 @@
       util.esc(player && player.note ? player.note : "Nog geen aantekeningen over jou.") +
       "</p></div>" +
       meter
+    );
+  }
+
+  /**
+   * Wie jij het vaakst hebt aangewezen. Zegt niets over goed of fout —
+   * alleen iets over waar jouw verdenking naartoe trekt.
+   */
+  function compassCard(session) {
+    const compass = G.compass(session.id);
+
+    if (!compass.total) {
+      return (
+        '<div class="card card--plain mt-4">' +
+        '<div class="card__head"><h2 class="card__title">Jouw kompas</h2></div>' +
+        '<p class="field__hint">Zodra je een test hebt ingeleverd zie je hier ' +
+        "naar wie jouw vinger het vaakst wijst.</p></div>"
+      );
+    }
+
+    const rows = compass.rows
+      .slice(0, 4)
+      .map(function (row) {
+        return (
+          '<div class="bar">' +
+          '<span class="bar__label">' + util.esc(row.name) + "</span>" +
+          '<div class="bar__track"><div class="bar__fill" style="width:' + row.share + '%"></div></div>' +
+          '<span class="bar__value">' + row.count + "×</span>" +
+          "</div>"
+        );
+      })
+      .join("");
+
+    return (
+      '<div class="card card--plain mt-4">' +
+      '<div class="card__head"><h2 class="card__title">Jouw kompas</h2></div>' +
+      '<div class="bars">' + rows + "</div>" +
+      '<p class="field__hint mt-3">Hoe vaak jij iemand hebt aangewezen, over al je ' +
+      "antwoorden. Of dat terecht was hoor je aan het eind.</p>" +
+      "</div>"
     );
   }
 
