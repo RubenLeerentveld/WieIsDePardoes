@@ -366,7 +366,7 @@ window.WIDM = window.WIDM || {};
       '<a class="brand" href="' + (kind === "admin" ? "admin.html" : "dashboard.html") + '">' +
       icon("crest", "brand__mark") +
       '<span class="brand__text">' +
-      '<span class="brand__title">Wie is de Mol?</span>' +
+      '<span class="brand__title">Wie is Pardoes?</span>' +
       '<span class="brand__sub">Efteling</span>' +
       "</span></a>" +
       '<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu openen">' +
@@ -424,7 +424,7 @@ window.WIDM = window.WIDM || {};
     const year = new Date().getFullYear();
     host.innerHTML =
       '<footer class="site-footer"><div class="shell shell--wide site-footer__inner">' +
-      '<span>Wie is de Mol? — Efteling editie · ' + year + "</span>" +
+      '<span>Wie is Pardoes? — Efteling editie · ' + year + "</span>" +
       '<span class="site-footer__motto">Vertrouw niemand.</span>' +
       "</div></footer>";
   }

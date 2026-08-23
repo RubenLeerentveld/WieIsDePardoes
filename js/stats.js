@@ -351,7 +351,7 @@
       '<span class="faint" style="font-size:.8rem">Gelijke punten delen een plaats</span></div>' +
       '<div class="rank">' + list + "</div>" +
       '<p class="field__hint mt-4">Punten zijn juiste antwoorden over alle tests. ' +
-      "De hoogste score wint niets — het gaat erom wie de Mol vindt.</p>" +
+      "De hoogste score wint niets — het gaat erom wie Pardoes vindt.</p>" +
       "</div>";
   }
 

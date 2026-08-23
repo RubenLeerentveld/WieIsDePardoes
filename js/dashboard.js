@@ -12,7 +12,7 @@
   const WHISPERS = [
     "Iedereen heeft iets te verbergen.",
     "De waarheid ligt ergens verborgen.",
-    "De Mol kijkt mee.",
+    "Pardoes kijkt mee.",
     "Let op wie er wegkijkt.",
     "Niet alles wat je zag, gebeurde ook.",
   ];
@@ -87,7 +87,7 @@
         '<span class="chip chip--gold chip--live"><span class="chip__dot"></span>Geopend</span>' +
         "</div>" +
         '<h2 class="mt-3">De test is geopend</h2>' +
-        '<p class="whisper mt-2">' + util.esc(openTest.subtitle || "Durf jij de Mol onder ogen te komen?") + "</p>" +
+        '<p class="whisper mt-2">' + util.esc(openTest.subtitle || "Durf jij Pardoes onder ogen te komen?") + "</p>" +
         '<div class="row mt-4">' +
         '<span class="chip">' + count + " vragen</span>" +
         '<span class="chip">1 kans</span>' +

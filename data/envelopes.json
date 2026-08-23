@@ -1,0 +1,34 @@
+[
+  {
+    "id": "env1",
+    "day": 1,
+    "title": "De eerste aanwijzing",
+    "code": "SPROOKJESBOS",
+    "hint": "Pardoes heeft op dag 1 iets laten vallen. Niemand raapte het op.",
+    "available": true
+  },
+  {
+    "id": "env2",
+    "day": 2,
+    "title": "Wat de envelop niet zei",
+    "code": "DONKERROOD",
+    "hint": "De opdracht van dag 2 kon wel degelijk gewonnen worden. Iemand wist dat.",
+    "available": true
+  },
+  {
+    "id": "env3",
+    "day": 3,
+    "title": "Tussen de spiegels",
+    "code": "VILLAVOLTA",
+    "hint": "Twee spelers wisselden op het laatste moment van plek. Vraag je af waarom.",
+    "available": true
+  },
+  {
+    "id": "env4",
+    "day": 4,
+    "title": "Het laatste zegel",
+    "code": "PARDOES",
+    "hint": "Pardoes heeft nog nooit als eerste een opdracht voorgesteld.",
+    "available": false
+  }
+]

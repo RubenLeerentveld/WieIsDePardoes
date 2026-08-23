@@ -1,10 +1,10 @@
-# Wie is de Mol? — Efteling editie
+# Wie is Pardoes? — Efteling editie
 
-Een privé *Wie is de Mol?*-website voor een groep vrienden of familie tijdens een dag
-(of vier) in de Efteling. Eén van de spelers is de Mol. Elke dag krijgt iedereen een
+Een privé *Wie is Pardoes?*-website voor een groep vrienden of familie tijdens een dag
+(of vier) in de Efteling. Eén van de spelers is Pardoes. Elke dag krijgt iedereen een
 test van tien vragen over wat er die dag gebeurde: wie stond waar, wie zei wat, wie
 deed iets vreemds. Wie de meeste vragen goed heeft ziet het meest — maar het gaat er
-uiteindelijk om wie de Mol vindt.
+uiteindelijk om wie Pardoes vindt.
 
 De site is opzettelijk **volledig statisch**: HTML, CSS en vanilla JavaScript, meer
 niet. Geen build, geen backend, geen database. Je kunt hem serveren met nginx, met
@@ -108,7 +108,7 @@ Alle speldata staat in `data/`. Dit is de enige bron van waarheid.
 ### `game.json`
 ```json
 {
-  "title": "Wie is de Mol?",
+  "title": "Wie is Pardoes?",
   "subtitle": "Iedereen heeft een geheim.",
   "location": "Efteling",
   "edition": "Editie 2026",

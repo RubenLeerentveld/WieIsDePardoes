@@ -1,22 +1,25 @@
 /* ==========================================================================
-   data.js — the single data layer
+   data.js — de datalaag
 
-   HOW PERSISTENCE WORKS (read this before changing anything)
-   ----------------------------------------------------------
-   The canonical game data lives in the JSON files under /data. They are the
-   source of truth and can only be changed by the administrator replacing the
-   files on the server.
+   HOE OPSLAAN WERKT (lees dit voordat je iets wijzigt)
+   ---------------------------------------------------
+   Er zijn drie plekken waar data kan staan:
 
-   A static site cannot write to those files, so every change made in the
-   browser (a submitted test, an edited question) is kept in a SEPARATE
-   localStorage "overlay". The overlay is per-device and per-browser.
+       data/*.json    uitgangsdata uit het image, alleen lezen
+       live/*.json    de levende data op de server, geschreven via HTTP PUT
+       localStorage   noodgreep als de server niet schrijfbaar is
 
-       canonical  data/*.json      shared by everyone, survives forever
-       overlay    localStorage     local to this browser only
+   Lezen gaat altijd eerst naar live/ en valt terug op data/. Zo mag live/
+   leeg beginnen — belangrijk op een NAS, waar een gekoppelde map niet vanuit
+   het image gevuld wordt.
 
-   Reads merge overlay over canonical. Writes only ever touch the overlay.
-   The admin can export the merged state as JSON files and put those on the
-   server, which is how local changes become canonical.
+   Schrijven doet de spelleider met een wachtwoord (HTTP basic auth op /live/).
+   De wijziging is meteen voor iedereen zichtbaar; niemand hoeft nog bestanden
+   te exporteren. Lukt het schrijven niet, dan valt de wijziging terug op
+   localStorage en zegt de site dat er iets mis is.
+
+   Inzendingen van spelers gaan naar /inbox/ onder een eigen bestandsnaam, dus
+   die kunnen elkaar niet overschrijven.
    ========================================================================== */
 
 window.WIDM = window.WIDM || {};
@@ -24,33 +27,55 @@ window.WIDM = window.WIDM || {};
 (function (WIDM) {
   "use strict";
 
-  const OVERLAY_KEY = "widm.overlay.v1";
+  const OVERLAY_KEY = "widm.overlay.v2";
+  const CREDS_KEY = "widm.write.v1";
 
-  /** Collection name -> file under /data. */
-  const FILES = {
-    game: "data/game.json",
-    settings: "data/settings.json",
-    players: "data/players.json",
-    questions: "data/questions.json",
-    tests: "data/tests.json",
-    results: "data/results.json",
-  };
+  const NAMES = ["game", "settings", "players", "questions", "tests", "results", "jokers", "envelopes"];
 
-  const NAMES = Object.keys(FILES);
+  const SEED_DIR = "data/";
+  const LIVE_DIR = "live/";
+  const INBOX_DIR = "inbox/";
 
-  let canonical = null; // raw contents of the JSON files
-  let overlay = null; // local, browser-only changes
-  let loading = null; // in-flight load promise
+  let seed = null; // inhoud van data/*.json
+  let live = null; // inhoud van live/*.json, per collectie (of undefined)
+  let overlay = null; // lokale noodopslag
+  let loading = null;
+  let serverWritable = true; // wordt false zodra een PUT faalt
 
   /* ------------------------------------------------------------------------
-     Overlay storage
+     Inloggegevens voor schrijven
+     ------------------------------------------------------------------------ */
+  function credentials() {
+    try {
+      const raw = window.sessionStorage.getItem(CREDS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function setCredentials(user, password) {
+    window.sessionStorage.setItem(CREDS_KEY, JSON.stringify({ user: user, password: password }));
+  }
+
+  function clearCredentials() {
+    window.sessionStorage.removeItem(CREDS_KEY);
+  }
+
+  function authHeader() {
+    const creds = credentials();
+    if (!creds) return null;
+    return "Basic " + btoa(creds.user + ":" + creds.password);
+  }
+
+  /* ------------------------------------------------------------------------
+     Lokale noodopslag
      ------------------------------------------------------------------------ */
   function readOverlay() {
     try {
       const raw = window.localStorage.getItem(OVERLAY_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch (error) {
-      console.warn("[WIDM] Overlay onleesbaar, wordt genegeerd.", error);
       return {};
     }
   }
@@ -59,124 +84,213 @@ window.WIDM = window.WIDM || {};
     try {
       window.localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlay));
     } catch (error) {
-      WIDM.toast("Lokale opslag zit vol of is geblokkeerd.", "error");
-      console.error("[WIDM]", error);
+      console.error("[WIDM] localStorage vol of geblokkeerd", error);
     }
   }
 
   /* ------------------------------------------------------------------------
-     Loading
+     Laden
      ------------------------------------------------------------------------ */
-  async function fetchJson(url) {
+  async function fetchJson(url, optional) {
     let response;
     try {
       response = await fetch(url, { cache: "no-store" });
     } catch (error) {
+      if (optional) return undefined;
       throw new Error("Kan " + url + " niet ophalen (" + error.message + ")");
     }
+    if (response.status === 404 && optional) return undefined;
     if (!response.ok) {
+      if (optional) return undefined;
       throw new Error("Kan " + url + " niet ophalen (HTTP " + response.status + ")");
     }
     try {
       return await response.json();
     } catch (error) {
-      throw new Error("Ongeldige JSON in " + url + " (" + error.message + ")");
+      if (optional) return undefined;
+      throw new Error("Ongeldige JSON in " + url);
     }
   }
 
-  /**
-   * Loads every JSON file once per page and caches the result.
-   * Returns the merged database object.
-   */
   function load() {
     if (loading) return loading;
 
-    loading = Promise.all(NAMES.map((name) => fetchJson(FILES[name])))
-      .then(function (values) {
-        canonical = {};
+    loading = Promise.all([
+      // De uitgangsdata moet er zijn; live/ mag ontbreken.
+      Promise.all(NAMES.map((name) => fetchJson(SEED_DIR + name + ".json", isOptionalSeed(name)))),
+      Promise.all(NAMES.map((name) => fetchJson(LIVE_DIR + name + ".json", true))),
+    ])
+      .then(function (both) {
+        seed = {};
+        live = {};
         NAMES.forEach(function (name, index) {
-          canonical[name] = values[index];
+          seed[name] = both[0][index] !== undefined ? both[0][index] : emptyFor(name);
+          if (both[1][index] !== undefined) live[name] = both[1][index];
         });
         overlay = readOverlay();
         return db();
       })
       .catch(function (error) {
-        loading = null; // allow a retry
+        loading = null;
         throw error;
       });
 
     return loading;
   }
 
-  /** The merged view: overlay wins per collection. */
+  /** Nieuwe collecties mogen ontbreken in oudere data-mappen. */
+  function isOptionalSeed(name) {
+    return name === "jokers" || name === "envelopes";
+  }
+
+  function emptyFor(name) {
+    return name === "game" || name === "settings" ? {} : [];
+  }
+
+  /** De samengevoegde blik: overlay > live > seed. */
   function db() {
     const merged = {};
     NAMES.forEach(function (name) {
-      merged[name] = overlay && Object.prototype.hasOwnProperty.call(overlay, name)
-        ? overlay[name]
-        : canonical[name];
+      if (overlay && Object.prototype.hasOwnProperty.call(overlay, name)) merged[name] = overlay[name];
+      else if (live && Object.prototype.hasOwnProperty.call(live, name)) merged[name] = live[name];
+      else merged[name] = seed[name];
     });
     return merged;
   }
 
   function get(name) {
-    if (!canonical) throw new Error("WIDM.data.load() is nog niet voltooid.");
+    if (!seed) throw new Error("WIDM.data.load() is nog niet voltooid.");
     return db()[name];
   }
 
+  /* ------------------------------------------------------------------------
+     Schrijven
+     ------------------------------------------------------------------------ */
   /**
-   * Replace a whole collection in the overlay. Everything the admin UI and
-   * the test runner change goes through here.
+   * Werkt de collectie direct bij in het geheugen en stuurt hem op de
+   * achtergrond naar de server. Bewust niet async: alle aanroepers in de
+   * admin blijven zo eenvoudig, en de UI reageert meteen.
    */
   function set(name, value) {
     if (!NAMES.includes(name)) throw new Error("Onbekende collectie: " + name);
-    overlay[name] = value;
-    writeOverlay();
+
+    live[name] = value;
+    push(name, value);
     return value;
   }
 
-  /** Convenience: read-modify-write on one collection. */
   function update(name, mutator) {
-    const next = mutator(structuredCloneish(get(name)));
-    return set(name, next);
+    return set(name, mutator(clone(get(name))));
   }
 
-  /** Small clone helper — the data is plain JSON, so this is enough. */
-  function structuredCloneish(value) {
+  function clone(value) {
     return JSON.parse(JSON.stringify(value));
   }
 
-  /* ------------------------------------------------------------------------
-     Local-change bookkeeping
-     ------------------------------------------------------------------------ */
-  function changedCollections() {
-    if (!overlay) return [];
-    return NAMES.filter(function (name) {
-      return Object.prototype.hasOwnProperty.call(overlay, name);
-    });
-  }
-
-  function hasLocalChanges() {
-    return changedCollections().length > 0;
-  }
-
-  /** Drop local changes for one collection, or all of them. */
-  function revert(name) {
-    if (name) {
-      delete overlay[name];
-    } else {
-      overlay = {};
+  /** Eén collectie naar de server sturen. */
+  async function push(name, value) {
+    const header = authHeader();
+    if (!header) {
+      fallback(name, value, "Geen schrijfcode ingevoerd.");
+      return false;
     }
+
+    try {
+      const response = await fetch(LIVE_DIR + name + ".json", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: header },
+        body: JSON.stringify(value, null, 2) + "\n",
+      });
+
+      if (response.status === 401) {
+        fallback(name, value, "De schrijfcode klopt niet.");
+        clearCredentials();
+        return false;
+      }
+      if (!response.ok) {
+        fallback(name, value, "Server weigerde de wijziging (HTTP " + response.status + ").");
+        return false;
+      }
+
+      // Gelukt: de noodkopie mag weg.
+      if (overlay && Object.prototype.hasOwnProperty.call(overlay, name)) {
+        delete overlay[name];
+        writeOverlay();
+      }
+      serverWritable = true;
+      document.dispatchEvent(new CustomEvent("widm:saved", { detail: { name: name } }));
+      return true;
+    } catch (error) {
+      fallback(name, value, error.message);
+      return false;
+    }
+  }
+
+  /** Opslaan mislukt: hou de wijziging lokaal vast en waarschuw. */
+  function fallback(name, value, reason) {
+    overlay[name] = value;
     writeOverlay();
+    serverWritable = false;
+    document.dispatchEvent(
+      new CustomEvent("widm:savefailed", { detail: { name: name, reason: reason } })
+    );
+  }
+
+  /** Alles wat nog lokaal vastzit alsnog naar de server duwen. */
+  async function retryPending() {
+    const names = Object.keys(overlay || {});
+    const done = [];
+    for (const name of names) {
+      // eslint-disable-next-line no-await-in-loop
+      if (await push(name, overlay[name])) done.push(name);
+    }
+    return done;
+  }
+
+  function pending() {
+    return Object.keys(overlay || {});
   }
 
   /* ------------------------------------------------------------------------
-     Export / import — the bridge back to the canonical files
+     Inzendingen van spelers
      ------------------------------------------------------------------------ */
-  function serialize(name) {
-    return JSON.stringify(get(name), null, 2) + "\n";
+  /** Eigen bestandsnaam per speler per dag, dus geen botsingen. */
+  async function submitToInbox(record) {
+    const file = INBOX_DIR + record.playerId + "-dag" + record.day + ".json";
+    const response = await fetch(file, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record, null, 2) + "\n",
+    });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return true;
   }
 
+  /** Alles ophalen wat spelers hebben ingeleverd. */
+  async function readInbox() {
+    const listing = await fetchJson(INBOX_DIR, true);
+    if (!Array.isArray(listing)) return [];
+
+    const files = listing
+      .filter(function (entry) {
+        return entry.type === "file" && /\.json$/i.test(entry.name);
+      })
+      .map(function (entry) {
+        return entry.name;
+      });
+
+    const records = [];
+    for (const name of files) {
+      // eslint-disable-next-line no-await-in-loop
+      const record = await fetchJson(INBOX_DIR + name, true);
+      if (record && record.playerId) records.push(record);
+    }
+    return records;
+  }
+
+  /* ------------------------------------------------------------------------
+     Back-up (nog steeds handig, maar niet meer nodig om te spelen)
+     ------------------------------------------------------------------------ */
   function download(filename, text) {
     const blob = new Blob([text], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -191,38 +305,20 @@ window.WIDM = window.WIDM || {};
     }, 1000);
   }
 
-  /** Download one <name>.json exactly as it should land in /data. */
   function exportFile(name) {
-    download(name + ".json", serialize(name));
+    download(name + ".json", JSON.stringify(get(name), null, 2) + "\n");
   }
 
-  /** Download every collection that differs from the canonical files. */
-  function exportChanged() {
-    const changed = changedCollections();
-    changed.forEach(function (name, index) {
-      // Stagger slightly: some browsers drop rapid consecutive downloads.
-      setTimeout(function () {
-        exportFile(name);
-      }, index * 350);
-    });
-    return changed;
-  }
-
-  /** One bundle containing everything, for backup purposes. */
   function exportBundle() {
-    const bundle = { exportedAt: new Date().toISOString(), data: db() };
-    download("widm-bundle.json", JSON.stringify(bundle, null, 2) + "\n");
+    download(
+      "widm-backup.json",
+      JSON.stringify({ exportedAt: new Date().toISOString(), data: db() }, null, 2) + "\n"
+    );
   }
 
-  /**
-   * Accepts either a bundle produced by exportBundle() or a single
-   * collection file. Returns the list of collections that were imported.
-   */
   function importJson(text, hintedName) {
     const parsed = JSON.parse(text);
-
-    // Bundle shape
-    if (parsed && parsed.data && typeof parsed.data === "object" && !Array.isArray(parsed)) {
+    if (parsed && parsed.data && !Array.isArray(parsed)) {
       const imported = [];
       NAMES.forEach(function (name) {
         if (parsed.data[name] !== undefined) {
@@ -233,48 +329,33 @@ window.WIDM = window.WIDM || {};
       if (!imported.length) throw new Error("Geen bekende collecties in dit bestand.");
       return imported;
     }
-
-    // Single collection — infer from the filename, fall back to the shape.
-    const name = NAMES.includes(hintedName) ? hintedName : inferName(parsed);
-    if (!name) throw new Error("Onbekend bestandstype. Hernoem naar bijvoorbeeld questions.json.");
-    set(name, parsed);
-    return [name];
+    if (!NAMES.includes(hintedName)) throw new Error("Hernoem het bestand naar bijvoorbeeld questions.json.");
+    set(hintedName, parsed);
+    return [hintedName];
   }
 
-  function inferName(value) {
-    if (Array.isArray(value)) {
-      const first = value[0] || {};
-      if ("pin" in first && "name" in first) return "players";
-      if ("correctAnswer" in first) return "questions";
-      if ("available" in first) return "tests";
-      if ("playerId" in first) return "results";
-      return null;
-    }
-    if (value && typeof value === "object") {
-      if ("currentDay" in value || "pot" in value) return "game";
-      if ("adminPin" in value || "leaderboardVisible" in value) return "settings";
-    }
-    return null;
-  }
-
-  /* ------------------------------------------------------------------------
-     Exports
-     ------------------------------------------------------------------------ */
   WIDM.data = {
-    FILES: FILES,
     NAMES: NAMES,
     load: load,
     db: db,
     get: get,
     set: set,
     update: update,
-    clone: structuredCloneish,
-    hasLocalChanges: hasLocalChanges,
-    changedCollections: changedCollections,
-    revert: revert,
-    serialize: serialize,
+    clone: clone,
+
+    credentials: credentials,
+    setCredentials: setCredentials,
+    clearCredentials: clearCredentials,
+    isServerWritable: function () {
+      return serverWritable;
+    },
+    retryPending: retryPending,
+    pending: pending,
+
+    submitToInbox: submitToInbox,
+    readInbox: readInbox,
+
     exportFile: exportFile,
-    exportChanged: exportChanged,
     exportBundle: exportBundle,
     importJson: importJson,
   };

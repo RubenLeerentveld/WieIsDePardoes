@@ -1,9 +1,7 @@
 {
   "adminPin": "9310",
-  "leaderboardVisible": true,
-  "showScoresToPlayers": true,
-  "showRankToPlayers": true,
-  "showCorrectAnswers": false,
-  "allowRetake": false,
-  "showSuspicionMeter": true
+  "revealEverything": false,
+  "showEliminationBoard": true,
+  "showBlindSpot": true,
+  "allowRetake": false
 }

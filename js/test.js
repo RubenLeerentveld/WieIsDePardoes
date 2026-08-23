@@ -50,7 +50,7 @@
       '<div class="card card--accent card--pad-lg anim-rise text-center">' +
       '<span class="eyebrow">Dag ' + util.esc(state.test.day) + " · " + util.esc(state.test.title) + "</span>" +
       '<h1 class="mt-3">De test is geopend</h1>' +
-      '<p class="whisper mt-3">' + util.esc(state.test.subtitle || "Durf jij de Mol onder ogen te komen?") + "</p>" +
+      '<p class="whisper mt-3">' + util.esc(state.test.subtitle || "Durf jij Pardoes onder ogen te komen?") + "</p>" +
       '<div class="ornament mt-4"><span class="ornament__glyph">✦</span></div>' +
       '<div class="grid grid--3 mt-4">' +
       '<div class="stat"><span class="stat__label">Vragen</span><span class="stat__value stat__value--sm numeral">' + count + "</span></div>" +

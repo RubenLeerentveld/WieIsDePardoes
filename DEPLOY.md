@@ -94,7 +94,7 @@ services:
 ```
 
 4. Terug in Cloudflare: voeg onder *Public Hostnames* een hostname toe, bijvoorbeeld
-   `mol.jouwdomein.nl`, met als service `http://wie-is-de-mol:80`.
+   `pardoes.jouwdomein.nl`, met als service `http://wie-is-de-mol:80`.
 
 Zorg dat beide stacks in hetzelfde Docker-netwerk zitten, anders vindt cloudflared
 de container niet. Het simpelst is om de `cloudflared`-service in dezelfde stack te
