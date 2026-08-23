@@ -2,6 +2,6 @@
   "adminPin": "9310",
   "revealEverything": false,
   "showEliminationBoard": true,
-  "allowRetake": false,
-  "showCompass": true
+  "showCompass": true,
+  "allowRetake": false
 }
