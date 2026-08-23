@@ -505,6 +505,13 @@ window.WIDM = window.WIDM || {};
       WIDM.data
         .load()
         .then(function (db) {
+          // Voor de opening komt niemand verder dan de voorpagina. Die pagina
+          // toont zelf de aftelklok, dus die mag hier niet omgeleid worden.
+          const here = currentPage();
+          if (here !== "index.html" && here !== "404.html" && WIDM.game.isLocked()) {
+            window.location.replace("index.html");
+            return null;
+          }
           return config.run ? config.run({ db: db, session: session }) : null;
         })
         .catch(fatal);

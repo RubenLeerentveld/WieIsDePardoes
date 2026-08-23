@@ -89,6 +89,52 @@ window.WIDM = window.WIDM || {};
     });
   }
 
+  /* ----------------------------------------------------------------------
+     De poort: voor de opening komt alleen de spelleider binnen
+     ---------------------------------------------------------------------- */
+  const BYPASS_KEY = "widm.bypass.v1";
+
+  /** Het moment waarop de site opengaat. Geen waarde = altijd open. */
+  function opensAt() {
+    const raw = game().opensAt;
+    if (!raw) return null;
+    const moment = new Date(raw);
+    return isNaN(moment.getTime()) ? null : moment;
+  }
+
+  function msUntilOpen() {
+    const moment = opensAt();
+    return moment ? moment.getTime() - Date.now() : 0;
+  }
+
+  function isBeforeOpening() {
+    return msUntilOpen() > 0;
+  }
+
+  /** Ontgrendeling geldt per toestel, niet voor iedereen. */
+  function isBypassed() {
+    try {
+      return window.localStorage.getItem(BYPASS_KEY) === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function isLocked() {
+    return isBeforeOpening() && !isBypassed();
+  }
+
+  /** Opent de poort op dit toestel als de toegangscode klopt. */
+  function unlockWith(code) {
+    if (String(settings().adminPin) !== String(code).trim()) return false;
+    try {
+      window.localStorage.setItem(BYPASS_KEY, "1");
+    } catch (error) {
+      return false;
+    }
+    return true;
+  }
+
   /** Wat de groep tot nu toe verdiend heeft. Geen maximum meer. */
   function earned() {
     const info = game();
@@ -484,6 +530,12 @@ window.WIDM = window.WIDM || {};
     activePlayers: activePlayers,
     eliminatedPlayers: eliminatedPlayers,
     earned: earned,
+    opensAt: opensAt,
+    msUntilOpen: msUntilOpen,
+    isBeforeOpening: isBeforeOpening,
+    isBypassed: isBypassed,
+    isLocked: isLocked,
+    unlockWith: unlockWith,
     questionById: questionById,
     testForDay: testForDay,
     questionsForDay: questionsForDay,

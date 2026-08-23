@@ -1,5 +1,10 @@
 /* ==========================================================================
-   gate.js — the cover page (index.html) and the sign-in page (login.html)
+   gate.js — de voorpagina (index.html) en het inloggen (login.html)
+
+   Voor de opening staat er een aftelklok. Spelers komen er niet langs; de
+   spelleider wel, met de toegangscode. Die ontgrendeling geldt alleen voor
+   dat ene toestel, zodat je rustig kunt voorbereiden terwijl de rest nog
+   buiten staat.
    ========================================================================== */
 
 (function (WIDM) {
@@ -8,18 +13,128 @@
   const util = WIDM.util;
 
   /* ------------------------------------------------------------------------
-     index.html — cover
+     Aftellen
      ------------------------------------------------------------------------ */
-  function renderCover() {
-    const host = document.getElementById("cover-status");
+  let ticker = null;
+
+  function parts(milliseconds) {
+    const total = Math.max(0, Math.floor(milliseconds / 1000));
+    return {
+      days: Math.floor(total / 86400),
+      hours: Math.floor((total % 86400) / 3600),
+      minutes: Math.floor((total % 3600) / 60),
+      seconds: total % 60,
+    };
+  }
+
+  function unit(value, label) {
+    return (
+      '<div class="countdown__unit">' +
+      '<span class="countdown__value">' + String(value).padStart(2, "0") + "</span>" +
+      '<span class="countdown__label">' + label + "</span>" +
+      "</div>"
+    );
+  }
+
+  function renderClock() {
+    const host = document.getElementById("countdown");
     if (!host) return;
 
+    const left = WIDM.game.msUntilOpen();
+
+    if (left <= 0) {
+      // De poort is opengegaan terwijl iemand stond te kijken.
+      window.clearInterval(ticker);
+      window.location.reload();
+      return;
+    }
+
+    const time = parts(left);
+    host.innerHTML =
+      (time.days ? unit(time.days, "dagen") : "") +
+      unit(time.hours, "uur") +
+      unit(time.minutes, "min") +
+      unit(time.seconds, "sec");
+  }
+
+  /** De aftelpagina: geen inloggen, alleen wachten of ontgrendelen. */
+  function renderLocked() {
+    const opens = WIDM.game.opensAt();
+    const when = opens
+      ? opens.toLocaleString("nl-NL", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "";
+
+    util.fill(
+      "#cover-status",
+      '<span class="eyebrow">De poort is nog gesloten</span>' +
+      '<div class="countdown mt-3" id="countdown" role="timer" aria-live="off"></div>' +
+      '<p class="mt-3 muted">Het onderzoek begint ' + util.esc(when) + ".</p>"
+    );
+
+    util.fill(
+      "#cover-actions",
+      '<p class="whisper text-center">Kom terug wanneer de klok op nul staat.</p>' +
+      '<div class="mt-4 text-center">' +
+      '<button class="btn btn--ghost btn--sm" type="button" id="bypass-toggle">Ik ben de spelleider</button>' +
+      "</div>" +
+      '<div id="bypass-panel" hidden>' +
+      '<form class="stack mt-4" id="bypass-form">' +
+      '<div class="field">' +
+      '<label class="field__label" for="bypass-code">Toegangscode</label>' +
+      '<input class="input input--pin" type="password" id="bypass-code" ' +
+      'inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••">' +
+      "</div>" +
+      '<div id="bypass-error" role="alert"></div>' +
+      '<button class="btn btn--primary btn--block" type="submit">Poort openen</button>' +
+      "</form></div>"
+    );
+
+    renderClock();
+    ticker = window.setInterval(renderClock, 1000);
+
+    const toggle = document.getElementById("bypass-toggle");
+    const panel = document.getElementById("bypass-panel");
+    toggle.addEventListener("click", function () {
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) document.getElementById("bypass-code").focus();
+    });
+
+    document.getElementById("bypass-form").addEventListener("submit", function (event) {
+      event.preventDefault();
+      const code = document.getElementById("bypass-code").value;
+
+      if (!WIDM.game.unlockWith(code)) {
+        util.fill(
+          document.getElementById("bypass-error"),
+          WIDM.notice("Verkeerde code", "De poort blijft dicht.", "danger")
+        );
+        document.getElementById("bypass-code").value = "";
+        return;
+      }
+
+      WIDM.toast("Poort geopend op dit toestel.");
+      window.location.href = "login.html";
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     De gewone voorpagina
+     ------------------------------------------------------------------------ */
+  function renderOpen() {
     const info = WIDM.game.game();
-    const openTests = WIDM.game.tests().filter(function (test) {
+    const tests = WIDM.game.tests();
+    const openTests = tests.filter(function (test) {
       return test.available;
     }).length;
 
-    host.innerHTML =
+    util.fill(
+      "#cover-status",
       '<span class="eyebrow">' + util.esc(info.edition || "Editie") + "</span>" +
       '<p class="stat__value numeral anim-glow" style="margin-top:.4rem">Dag ' + util.esc(info.currentDay) + "</p>" +
       '<div class="ornament mt-3"><span class="ornament__glyph">✦</span></div>' +
@@ -27,20 +142,28 @@
       '<div><span class="stat__label">Tot nu toe verdiend</span>' +
       '<span class="stat__value stat__value--sm numeral">' + util.esc(util.money(WIDM.game.earned())) + "</span></div>" +
       '<div><span class="stat__label">Tests geopend</span>' +
-      '<span class="stat__value stat__value--sm numeral stat__value--plain">' + openTests + " / " + WIDM.game.tests().length + "</span></div>" +
-      "</div>";
+      '<span class="stat__value stat__value--sm numeral stat__value--plain">' +
+      openTests + " / " + tests.length + "</span></div>" +
+      "</div>"
+    );
 
-    // A returning player skips the form entirely.
     const session = WIDM.auth.session();
-    const cta = document.getElementById("cover-cta");
-    if (session && cta) {
-      cta.href = session.kind === "admin" ? "admin.html" : "dashboard.html";
-      cta.textContent = "Verder als " + session.name;
-    }
+    const target = session ? (session.kind === "admin" ? "admin.html" : "dashboard.html") : "login.html";
+    const label = session ? "Verder als " + session.name : "Betreed het dossier";
+
+    util.fill(
+      "#cover-actions",
+      '<a class="btn btn--primary btn--lg btn--block" href="' + target + '">' + util.esc(label) + "</a>" +
+      '<a class="btn btn--ghost btn--block mt-2" href="login.html#spelleider">Ik ben de spelleider</a>' +
+      (WIDM.game.isBypassed() && WIDM.game.isBeforeOpening()
+        ? '<p class="field__hint mt-3 text-center">De poort staat nog dicht voor spelers; ' +
+          "jij bent doorgelaten met de toegangscode.</p>"
+        : "")
+    );
   }
 
   /* ------------------------------------------------------------------------
-     login.html — role tabs
+     login.html
      ------------------------------------------------------------------------ */
   function setupTabs() {
     const tabs = util.$$(".segmented__item[role='tab']");
@@ -61,17 +184,16 @@
       });
     });
 
-    // Allow deep links: login.html#spelleider
     const hash = window.location.hash.replace("#", "");
     select(hash === "spelleider" ? "spelleider" : "speler");
   }
 
-  /** Where to go after signing in — honours ?next= set by the auth guard. */
   function destination(fallback) {
     const next = new URLSearchParams(window.location.search).get("next");
     const allowed = [
-      "dashboard.html", "test.html", "results.html", "stats.html", "leaderboard.html",
-      "admin.html", "admin-questions.html", "admin-tests.html", "admin-players.html", "admin-game.html",
+      "dashboard.html", "test.html", "archief.html", "results.html", "stats.html", "leaderboard.html",
+      "admin.html", "admin-questions.html", "admin-tests.html", "admin-players.html",
+      "admin-archief.html", "admin-game.html",
     ];
     return next && allowed.includes(next) ? next : fallback;
   }
@@ -132,7 +254,14 @@
 
   WIDM.page({
     run: function () {
-      renderCover();
+      const onCover = !!document.getElementById("cover-status");
+
+      if (onCover) {
+        if (WIDM.game.isLocked()) renderLocked();
+        else renderOpen();
+        return;
+      }
+
       setupTabs();
       setupForms();
     },

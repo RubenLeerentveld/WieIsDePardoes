@@ -22,6 +22,18 @@
     render();
   }
 
+  /** Date -> "2026-08-24T15:45" in lokale tijd, voor datetime-local. */
+  function toLocalInput(date) {
+    if (!date) return "";
+    const pad = function (value) {
+      return String(value).padStart(2, "0");
+    };
+    return (
+      date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) +
+      "T" + pad(date.getHours()) + ":" + pad(date.getMinutes())
+    );
+  }
+
   function fieldRow(label, inputHtml, hint) {
     return (
       '<div class="field">' +
@@ -1105,6 +1117,9 @@
         '<div class="grid grid--2">' +
         fieldRow("Tot nu toe verdiend (€)", '<input class="input" type="number" min="0" step="10" id="g-earned" value="' + util.esc(WIDM.game.earned()) + '">',
           "Er is geen maximum meer.") +
+        fieldRow("Poort opent op", '<input class="input" type="datetime-local" id="g-opensAt" value="' +
+          util.esc(toLocalInput(WIDM.game.opensAt())) + '">',
+          "Tot dat moment zien spelers alleen een aftelklok. Leeg laten betekent meteen open.") +
         "</div>" +
         "</div>" +
         '<div class="actionbar">' +
@@ -1161,6 +1176,11 @@
       next.currentDay = Number(document.getElementById("g-currentDay").value) || 1;
       next.totalDays = Number(document.getElementById("g-totalDays").value) || 1;
       next.earned = Number(document.getElementById("g-earned").value) || 0;
+
+      const opens = document.getElementById("g-opensAt").value;
+      // datetime-local geeft lokale tijd zonder zone; opslaan als ISO in UTC
+      // zodat er geen twijfel over kan bestaan.
+      next.opensAt = opens ? new Date(opens).toISOString() : "";
       delete next.pot;
       delete next.maxPot;
 
