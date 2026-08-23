@@ -1,9 +1,9 @@
 /* ==========================================================================
-   admin-editors.js — the four editors: questions, tests, players, game.
+   admin-editors.js — de editors: vragen, tests, spelers, spel en enveloppen.
 
-   Every write goes through WIDM.data.update(), which clones the collection,
-   applies the change and stores the result in the local overlay. Nothing here
-   touches the JSON files on the server; that is the export step.
+   Elke wijziging gaat via WIDM.data.update(). Die kloont de collectie, past
+   hem aan en stuurt het resultaat meteen naar de server (PUT op /live/). Lukt
+   dat niet, dan blijft de wijziging lokaal staan en meldt de balk bovenaan dat.
    ========================================================================== */
 
 (function (WIDM) {
@@ -409,10 +409,8 @@
               : '<span class="chip">Verzegeld</span>') +
             "</div></div>" +
 
-            '<div class="grid grid--3 mt-4">' +
-            toggle("Test beschikbaar", "available", test.day, test.available) +
-            toggle("Uitslag zichtbaar", "resultsVisible", test.day, test.resultsVisible) +
-            toggle("Klassement zichtbaar", "leaderboardVisible", test.day, test.leaderboardVisible) +
+            '<div class="mt-4">' +
+            toggle("Test beschikbaar voor spelers", "available", test.day, test.available) +
             "</div>" +
 
             '<div class="actionbar">' +
@@ -474,8 +472,6 @@
         subtitle: "",
         date: "",
         available: false,
-        resultsVisible: false,
-        leaderboardVisible: true,
         questionIds: [],
       };
 
@@ -526,8 +522,6 @@
         subtitle: document.getElementById("t-subtitle").value.trim(),
         date: document.getElementById("t-date").value,
         available: !!model.available,
-        resultsVisible: !!model.resultsVisible,
-        leaderboardVisible: model.leaderboardVisible !== false,
         // A fresh day starts with every question already tagged for it.
         questionIds: isNew
           ? G.questionsForDay(day).map(function (question) {
@@ -680,24 +674,34 @@
       const rows = standings
         .map(function (row) {
           const stats = row.stats;
-          const average = stats.testsTaken ? stats.average.toFixed(1).replace(".", ",") : "—";
+          const player = row.player;
+          const jokerCount = WIDM.game.jokers().reduce(function (sum, joker) {
+            return joker.playerId === player.id ? sum + (Number(joker.count) || 0) : sum;
+          }, 0);
+
           return (
-            "<tr>" +
-            "<td>" + util.esc(row.player.name) + "</td>" +
-            '<td class="faint numeral">' + util.esc(row.player.id) + "</td>" +
+            "<tr" + (player.eliminated ? ' style="opacity:.5"' : "") + ">" +
+            "<td>" + util.esc(player.name) + "</td>" +
             '<td class="numeral">' +
             (playersEditor.showPins
-              ? util.esc(row.player.pin)
-              : '<span class="redacted" tabindex="0">' + util.esc(row.player.pin) + "</span>") +
+              ? util.esc(player.pin)
+              : '<span class="redacted" tabindex="0">' + util.esc(player.pin) + "</span>") +
             "</td>" +
             '<td class="table__num">' + stats.testsTaken + "/" + stats.testsTotal + "</td>" +
-            '<td class="table__num">' + average + "</td>" +
             '<td class="table__num">' + row.points + "</td>" +
-            '<td class="table__num">' + util.pad2(row.rank) + "</td>" +
+            '<td class="table__num">' + (jokerCount || "—") + "</td>" +
+            "<td>" +
+            (player.eliminated
+              ? '<span class="chip chip--red">Af · dag ' + util.esc(player.eliminatedDay || "?") + "</span>"
+              : '<span class="chip chip--green">In het spel</span>') +
+            "</td>" +
             '<td><div class="table__actions">' +
-            '<button class="btn btn--sm btn--ghost" type="button" data-edit="' + util.esc(row.player.id) + '">' +
+            '<button class="btn btn--sm btn--ghost" type="button" data-joker="' + util.esc(player.id) + '" title="Joker geven">★</button>' +
+            '<button class="btn btn--sm btn--ghost" type="button" data-eliminate="' + util.esc(player.id) + '" title="Afvallen">' +
+            WIDM.icon(player.eliminated ? "check" : "x", "btn__icon") + "</button>" +
+            '<button class="btn btn--sm btn--ghost" type="button" data-edit="' + util.esc(player.id) + '">' +
             WIDM.icon("pen", "btn__icon") + "</button>" +
-            '<button class="btn btn--sm btn--danger" type="button" data-delete="' + util.esc(row.player.id) + '">' +
+            '<button class="btn btn--sm btn--danger" type="button" data-delete="' + util.esc(player.id) + '">' +
             WIDM.icon("trash", "btn__icon") + "</button>" +
             "</div></td></tr>"
           );
@@ -707,12 +711,24 @@
       host.innerHTML =
         '<div class="card card--plain">' +
         '<div class="table-wrap"><table class="table">' +
-        "<thead><tr><th>Naam</th><th>ID</th><th>Pin</th><th>Tests</th><th>Gem.</th><th>Punten</th><th>Plaats</th><th></th></tr></thead>" +
+        "<thead><tr><th>Naam</th><th>Pin</th><th>Tests</th><th>Punten</th><th>Jokers</th><th>Status</th><th></th></tr></thead>" +
         "<tbody>" + rows + "</tbody></table></div></div>";
 
       util.$$("[data-edit]", host).forEach(function (button) {
         button.addEventListener("click", function () {
           playersEditor.openEditor(G.playerById(button.dataset.edit));
+        });
+      });
+
+      util.$$("[data-eliminate]", host).forEach(function (button) {
+        button.addEventListener("click", function () {
+          playersEditor.toggleElimination(button.dataset.eliminate);
+        });
+      });
+
+      util.$$("[data-joker]", host).forEach(function (button) {
+        button.addEventListener("click", function () {
+          playersEditor.giveJoker(button.dataset.joker);
         });
       });
 
@@ -784,6 +800,98 @@
           afterWrite(playersEditor.render);
         });
       });
+    },
+
+    /** Speler af laten vallen, of weer terug in het spel zetten. */
+    async toggleElimination(id) {
+      const player = G.playerById(id);
+      if (!player) return;
+
+      if (player.eliminated) {
+        WIDM.data.update("players", function (list) {
+          const entry = list.find(function (item) {
+            return item.id === id;
+          });
+          if (entry) {
+            entry.eliminated = false;
+            entry.eliminatedDay = null;
+          }
+          return list;
+        });
+        WIDM.toast(player.name + " doet weer mee.");
+        afterWrite(playersEditor.render);
+        return;
+      }
+
+      const day = G.game().currentDay || 1;
+      const ok = await admin.confirm(
+        player.name + " laten afvallen?",
+        "Dit wordt vastgelegd op dag " + day + " en is voor iedereen zichtbaar op het bord.",
+        "Afvallen",
+        true
+      );
+      if (!ok) return;
+
+      WIDM.data.update("players", function (list) {
+        const entry = list.find(function (item) {
+          return item.id === id;
+        });
+        if (entry) {
+          entry.eliminated = true;
+          entry.eliminatedDay = day;
+        }
+        return list;
+      });
+
+      WIDM.toast(player.name + " is afgevallen.");
+      afterWrite(playersEditor.render);
+    },
+
+    /** Joker toekennen. Onzichtbaar voor de speler zelf. */
+    giveJoker(id) {
+      const player = G.playerById(id);
+      if (!player) return;
+
+      const days = G.tests().map(function (test) {
+        return test.day;
+      });
+
+      admin.openModal(
+        '<span class="eyebrow">Joker</span>' +
+        '<h2 id="editor-title" class="mt-2">Joker voor ' + util.esc(player.name) + "</h2>" +
+        '<p class="mt-3 muted">Eén joker maakt bij het berekenen van de score één fout ' +
+        "antwoord alsnog goed. De speler ziet hier niets van.</p>" +
+        '<div class="stack mt-4">' +
+        fieldRow("Testdag", '<select class="select" id="j-day">' +
+          days.map(function (day) {
+            return '<option value="' + day + '">Dag ' + day + "</option>";
+          }).join("") + "</select>") +
+        fieldRow("Aantal jokers", '<input class="input" type="number" min="0" max="10" id="j-count" value="1">',
+          "0 verwijdert de jokers voor die dag.") +
+        "</div>" +
+        '<div class="actionbar">' +
+        '<button class="btn btn--ghost" type="button" data-role="cancel">Annuleren</button>' +
+        '<button class="btn btn--primary" type="button" data-role="save">Opslaan</button></div>',
+        function (panel) {
+          panel.querySelector('[data-role="cancel"]').addEventListener("click", admin.closeModal);
+          panel.querySelector('[data-role="save"]').addEventListener("click", function () {
+            const day = Number(document.getElementById("j-day").value);
+            const count = Number(document.getElementById("j-count").value) || 0;
+
+            WIDM.data.update("jokers", function (list) {
+              const next = list.filter(function (joker) {
+                return !(joker.playerId === id && Number(joker.day) === day);
+              });
+              if (count > 0) next.push({ playerId: id, day: day, count: count, note: "" });
+              return next;
+            });
+
+            admin.closeModal();
+            WIDM.toast(count > 0 ? count + " joker(s) voor dag " + day + "." : "Jokers verwijderd.");
+            afterWrite(playersEditor.render);
+          });
+        }
+      );
     },
 
     openEditor(player) {
@@ -912,8 +1020,8 @@
         fieldRow("Aantal speeldagen", '<input class="input" type="number" min="1" id="g-totalDays" value="' + util.esc(info.totalDays || G.tests().length) + '">') +
         "</div>" +
         '<div class="grid grid--2">' +
-        fieldRow("Pot (€)", '<input class="input" type="number" min="0" step="10" id="g-pot" value="' + util.esc(info.pot || 0) + '">') +
-        fieldRow("Maximale pot (€)", '<input class="input" type="number" min="0" step="10" id="g-maxPot" value="' + util.esc(info.maxPot || 0) + '">') +
+        fieldRow("Tot nu toe verdiend (€)", '<input class="input" type="number" min="0" step="10" id="g-earned" value="' + util.esc(WIDM.game.earned()) + '">',
+          "Er is geen maximum meer.") +
         "</div>" +
         "</div>" +
         '<div class="actionbar">' +
@@ -926,12 +1034,10 @@
         '<div class="card card--pad-lg">' +
         '<div class="card__head"><h2 class="card__title">Wat spelers zien</h2></div>' +
         '<div class="stack stack--tight">' +
-        settingToggle("Klassement zichtbaar", "leaderboardVisible", settings.leaderboardVisible) +
-        settingToggle("Scores zichtbaar voor spelers", "showScoresToPlayers", settings.showScoresToPlayers) +
-        settingToggle("Plaats in klassement tonen", "showRankToPlayers", settings.showRankToPlayers) +
-        settingToggle("Juiste antwoorden vrijgeven", "showCorrectAnswers", settings.showCorrectAnswers) +
+        settingToggle("Afvallersbord zichtbaar", "showEliminationBoard", settings.showEliminationBoard) +
+        settingToggle("Jouw kompas tonen", "showCompass", settings.showCompass) +
         settingToggle("Test opnieuw mogen maken", "allowRetake", settings.allowRetake) +
-        settingToggle("Blinde vlek tonen", "showSuspicionMeter", settings.showSuspicionMeter) +
+        settingToggle("EINDONTHULLING: alle antwoorden vrijgeven", "revealEverything", settings.revealEverything) +
         "</div>" +
         '<div class="mt-4">' +
         fieldRow("Toegangscode spelleider", '<input class="input" type="text" id="s-adminPin" value="' + util.esc(settings.adminPin || "") + '">',
@@ -945,34 +1051,21 @@
       util.fill(
         "#danger-zone",
         '<div class="card card--danger card--pad-lg">' +
-        '<div class="card__head"><h2 class="card__title">Lokale wijzigingen</h2></div>' +
-        '<p class="muted">Alles wat je hier aanpast leeft in deze browser. Exporteer de bestanden ' +
-        "en vervang ze op de server om de wijzigingen voor iedereen te laten gelden.</p>" +
+        '<div class="card__head"><h2 class="card__title">Eindonthulling</h2></div>' +
+        '<p class="muted">Zet dit pas aan na de finale. Spelers zien dan bij hun ' +
+        "antwoorden welke goed waren — en daarmee ook of hun verdenking klopte.</p>" +
         '<div class="actionbar">' +
-        '<button class="btn btn--sm" type="button" data-role="export-changed">' +
-        WIDM.icon("download", "btn__icon") + "Exporteer gewijzigde bestanden</button>" +
-        '<button class="btn btn--sm btn--danger" type="button" data-role="revert">Alles terugdraaien</button>' +
+        '<button class="btn btn--sm" type="button" data-role="backup">' +
+        WIDM.icon("download", "btn__icon") + "Back-up downloaden</button>" +
         "</div></div>"
       );
 
       document.querySelector('[data-role="save-game"]').addEventListener("click", gameEditor.saveGame);
       document.querySelector('[data-role="save-settings"]').addEventListener("click", gameEditor.saveSettings);
 
-      document.querySelector('[data-role="export-changed"]').addEventListener("click", function () {
-        const files = WIDM.data.exportChanged();
-        WIDM.toast(files.length ? files.length + " bestand(en) gedownload." : "Er is niets gewijzigd.");
-      });
-
-      document.querySelector('[data-role="revert"]').addEventListener("click", async function () {
-        const ok = await admin.confirm(
-          "Alles terugdraaien?",
-          "Deze browser valt terug op de JSON-bestanden op de server.",
-          "Terugdraaien",
-          true
-        );
-        if (!ok) return;
-        WIDM.data.revert();
-        window.location.reload();
+      document.querySelector('[data-role="backup"]').addEventListener("click", function () {
+        WIDM.data.exportBundle();
+        WIDM.toast("Back-up gedownload.");
       });
     },
 
@@ -984,8 +1077,9 @@
       next.edition = document.getElementById("g-edition").value.trim();
       next.currentDay = Number(document.getElementById("g-currentDay").value) || 1;
       next.totalDays = Number(document.getElementById("g-totalDays").value) || 1;
-      next.pot = Number(document.getElementById("g-pot").value) || 0;
-      next.maxPot = Number(document.getElementById("g-maxPot").value) || 0;
+      next.earned = Number(document.getElementById("g-earned").value) || 0;
+      delete next.pot;
+      delete next.maxPot;
 
       WIDM.data.set("game", next);
       WIDM.toast("Spelgegevens opgeslagen.");
@@ -1016,6 +1110,183 @@
   }
 
   /* ========================================================================
+     5. ENVELOPPEN
+     ======================================================================== */
+  const envelopesEditor = {
+    init() {
+      document.getElementById("add-envelope").addEventListener("click", function () {
+        envelopesEditor.openEditor(null);
+      });
+      this.render();
+    },
+
+    nextId() {
+      const numbers = G.envelopes()
+        .map(function (envelope) {
+          const match = /^env(\d+)$/.exec(envelope.id);
+          return match ? Number(match[1]) : 0;
+        })
+        .filter(Boolean);
+      return "env" + ((numbers.length ? Math.max.apply(null, numbers) : 0) + 1);
+    },
+
+    render() {
+      const host = document.getElementById("envelopes-list");
+      const list = G.envelopes();
+
+      if (!list.length) {
+        host.innerHTML =
+          '<div class="card card--pad-lg">' +
+          WIDM.emptyState("Nog geen enveloppen", "Maak een envelop met een hint en een code.", "feather") +
+          "</div>";
+        return;
+      }
+
+      const rows = list
+        .map(function (envelope) {
+          return (
+            "<tr>" +
+            "<td>" + util.esc(envelope.day) + "</td>" +
+            "<td>" + util.esc(envelope.title) + "</td>" +
+            '<td class="numeral"><span class="chip chip--gold">' + util.esc(envelope.code) + "</span></td>" +
+            '<td style="white-space:normal;min-width:20rem">' + util.esc(envelope.hint) + "</td>" +
+            "<td>" +
+            (envelope.available
+              ? '<span class="chip chip--green">Beschikbaar</span>'
+              : '<span class="chip">Verborgen</span>') +
+            "</td>" +
+            '<td><div class="table__actions">' +
+            '<button class="btn btn--sm btn--ghost" type="button" data-toggle="' + util.esc(envelope.id) + '">' +
+            WIDM.icon(envelope.available ? "x" : "check", "btn__icon") + "</button>" +
+            '<button class="btn btn--sm btn--ghost" type="button" data-edit="' + util.esc(envelope.id) + '">' +
+            WIDM.icon("pen", "btn__icon") + "</button>" +
+            '<button class="btn btn--sm btn--danger" type="button" data-delete="' + util.esc(envelope.id) + '">' +
+            WIDM.icon("trash", "btn__icon") + "</button>" +
+            "</div></td></tr>"
+          );
+        })
+        .join("");
+
+      host.innerHTML =
+        '<div class="card card--plain">' +
+        '<div class="table-wrap"><table class="table">' +
+        "<thead><tr><th>Dag</th><th>Titel</th><th>Code</th><th>Hint</th><th>Status</th><th></th></tr></thead>" +
+        "<tbody>" + rows + "</tbody></table></div>" +
+        '<p class="field__hint mt-3">Codes zijn hoofdletterongevoelig. Een geopende envelop ' +
+        "blijft open op het toestel van die speler.</p></div>";
+
+      util.$$("[data-edit]", host).forEach(function (button) {
+        button.addEventListener("click", function () {
+          envelopesEditor.openEditor(
+            G.envelopes().find(function (entry) {
+              return entry.id === button.dataset.edit;
+            })
+          );
+        });
+      });
+
+      util.$$("[data-toggle]", host).forEach(function (button) {
+        button.addEventListener("click", function () {
+          const id = button.dataset.toggle;
+          WIDM.data.update("envelopes", function (list2) {
+            const entry = list2.find(function (item) {
+              return item.id === id;
+            });
+            if (entry) entry.available = !entry.available;
+            return list2;
+          });
+          afterWrite(envelopesEditor.render);
+        });
+      });
+
+      util.$$("[data-delete]", host).forEach(function (button) {
+        button.addEventListener("click", async function () {
+          const ok = await admin.confirm(
+            "Envelop verwijderen?",
+            "De hint verdwijnt voor iedereen die hem nog niet had geopend.",
+            "Verwijderen",
+            true
+          );
+          if (!ok) return;
+          const id = button.dataset.delete;
+          WIDM.data.update("envelopes", function (list2) {
+            return list2.filter(function (entry) {
+              return entry.id !== id;
+            });
+          });
+          WIDM.toast("Envelop verwijderd.");
+          afterWrite(envelopesEditor.render);
+        });
+      });
+    },
+
+    openEditor(envelope) {
+      const isNew = !envelope;
+      const model = envelope || {
+        id: envelopesEditor.nextId(),
+        day: G.game().currentDay || 1,
+        title: "",
+        code: "",
+        hint: "",
+        available: false,
+      };
+
+      admin.openModal(
+        '<span class="eyebrow">' + (isNew ? "Nieuwe envelop" : util.esc(model.id)) + "</span>" +
+        '<h2 id="editor-title" class="mt-2">' + (isNew ? "Envelop opstellen" : "Envelop bewerken") + "</h2>" +
+        '<div class="stack mt-4">' +
+        '<div class="grid grid--2">' +
+        fieldRow("Dag", '<input class="input" type="number" min="1" id="e-day" value="' + util.esc(model.day) + '">') +
+        fieldRow("Code", '<input class="input" type="text" id="e-code" value="' + util.esc(model.code) + '">',
+          "Hoofdletterongevoelig, spaties tellen niet mee.") +
+        "</div>" +
+        fieldRow("Titel", '<input class="input" type="text" id="e-title" value="' + util.esc(model.title) + '">') +
+        fieldRow("Hint", '<textarea class="textarea" id="e-hint">' + util.esc(model.hint) + "</textarea>") +
+        '<div id="e-error"></div>' +
+        "</div>" +
+        '<div class="actionbar">' +
+        '<button class="btn btn--ghost" type="button" data-role="cancel">Annuleren</button>' +
+        '<button class="btn btn--primary" type="button" data-role="save">Opslaan</button></div>',
+        function (panel) {
+          panel.querySelector('[data-role="cancel"]').addEventListener("click", admin.closeModal);
+          panel.querySelector('[data-role="save"]').addEventListener("click", function () {
+            const title = document.getElementById("e-title").value.trim();
+            const code = document.getElementById("e-code").value.trim();
+            const hint = document.getElementById("e-hint").value.trim();
+
+            if (!title || !code || !hint) {
+              util.fill("#e-error", WIDM.notice("Onvolledig", "Titel, code en hint zijn allemaal nodig.", "danger"));
+              return;
+            }
+
+            const record = {
+              id: model.id,
+              day: Number(document.getElementById("e-day").value) || 1,
+              title: title,
+              code: code,
+              hint: hint,
+              available: !!model.available,
+            };
+
+            WIDM.data.update("envelopes", function (list) {
+              const index = list.findIndex(function (entry) {
+                return entry.id === model.id;
+              });
+              if (index >= 0) list[index] = record;
+              else list.push(record);
+              return list;
+            });
+
+            admin.closeModal();
+            WIDM.toast(isNew ? "Envelop toegevoegd." : "Envelop bijgewerkt.");
+            afterWrite(envelopesEditor.render);
+          });
+        }
+      );
+    },
+  };
+
+  /* ========================================================================
      Dispatch — each page mounts only what it has markup for
      ======================================================================== */
   admin.register(function () {
@@ -1023,5 +1294,6 @@
     if (document.getElementById("tests-list")) testsEditor.init();
     if (document.getElementById("players-list")) playersEditor.init();
     if (document.getElementById("game-form")) gameEditor.init();
+    if (document.getElementById("envelopes-list")) envelopesEditor.init();
   });
 })(window.WIDM);
