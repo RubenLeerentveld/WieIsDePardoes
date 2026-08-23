@@ -150,7 +150,7 @@
       "#stats-extra",
       '<div class="card">' +
       '<div class="card__head"><h2 class="card__title">Onderzoeker</h2></div>' +
-      '<div class="row"><span class="avatar avatar--lg">' + util.esc(G.initialsOf(player)) + "</span>" +
+      '<div class="row">' + G.avatar(player, "avatar--lg") +
       '<div><p style="font-family:var(--font-display);font-size:1.1rem">' + util.esc(session.name) + "</p>" +
       '<p class="faint" style="font-size:.82rem">Sinds ' +
       util.esc(player && player.joined ? util.dateShort(player.joined) : "dag 1") + "</p></div></div>" +
@@ -224,7 +224,11 @@
         return (
           '<article class="suspect' + (out ? " suspect--out" : "") + '">' +
           '<span class="pin' + (me ? " pin--gold" : "") + '"></span>' +
-          '<div class="suspect__photo">' + util.esc(G.initialsOf(player)) + "</div>" +
+          '<div class="suspect__photo">' +
+          (player.photo
+            ? '<img src="' + util.esc(player.photo) + '" alt="">'
+            : util.esc(G.initialsOf(player))) +
+          "</div>" +
           '<h3 class="suspect__name">' + util.esc(player.name) + "</h3>" +
           '<p class="suspect__note">' + util.esc(player.note || "Geen aantekeningen.") + "</p>" +
           '<p class="suspect__meta">' +
@@ -308,7 +312,7 @@
       return (
         '<div class="rank__row' + (me ? " rank__row--me" : "") + '"' + (gone ? ' style="opacity:.45"' : "") + ">" +
         '<span class="rank__pos numeral">' + (gone ? "✕" : "•") + "</span>" +
-        '<span class="avatar avatar--sm rank__avatar">' + util.esc(G.initialsOf(player)) + "</span>" +
+        G.avatar(player, "avatar--sm rank__avatar") +
         '<span class="rank__body">' +
         '<span class="rank__name">' + util.esc(player.name) + (me ? ' <span class="faint">(jij)</span>' : "") + "</span>" +
         '<span class="rank__meta">' +

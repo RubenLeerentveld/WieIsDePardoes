@@ -95,6 +95,21 @@ window.WIDM = window.WIDM || {};
     return Number(info.earned !== undefined ? info.earned : info.pot) || 0;
   }
 
+  /**
+   * Avatar van een speler: foto als die er is, anders de initialen.
+   * De foto is een data-URI in players.json — zie de spelerseditor.
+   */
+  function avatar(player, className) {
+    const classes = "avatar" + (className ? " " + className : "");
+    if (player && player.photo) {
+      return (
+        '<span class="' + classes + ' avatar--photo">' +
+        '<img src="' + WIDM.util.esc(player.photo) + '" alt=""></span>'
+      );
+    }
+    return '<span class="' + classes + '">' + WIDM.util.esc(initialsOf(player)) + "</span>";
+  }
+
   function testForDay(day) {
     return tests().find(function (test) {
       return Number(test.day) === Number(day);
@@ -462,6 +477,7 @@ window.WIDM = window.WIDM || {};
     results: results,
     playerById: playerById,
     initialsOf: initialsOf,
+    avatar: avatar,
     jokers: jokers,
     jokersFor: jokersFor,
     envelopes: envelopes,

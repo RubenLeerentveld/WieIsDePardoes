@@ -44,6 +44,27 @@
   /* ------------------------------------------------------------------------
      Intro
      ------------------------------------------------------------------------ */
+  /**
+   * Heeft de speler een joker voor deze dag, dan zeggen we dat eerlijk. Een
+   * joker is een beloning, geen geheim — en het verraadt niets over je score.
+   */
+  function jokerNotice() {
+    const jokers = G.jokersFor(state.session.id, state.test.day);
+    if (!jokers) return "";
+
+    return (
+      '<div class="paper paper--tilt-l anim-rise" style="margin-top:1.3rem">' +
+      '<span class="pin pin--gold"></span>' +
+      '<p style="font-family:var(--font-display);font-size:.64rem;letter-spacing:.24em;' +
+      'text-transform:uppercase">' + (jokers === 1 ? "Joker" : jokers + " jokers") + "</p>" +
+      '<p class="whisper" style="color:#6a2231;font-size:1.4rem;line-height:1.35;margin-top:.4rem">' +
+      (jokers === 1
+        ? "Je hebt een joker. Eén fout antwoord telt straks toch als goed."
+        : "Je hebt " + jokers + " jokers. Evenveel foute antwoorden tellen straks toch als goed.") +
+      "</p></div>"
+    );
+  }
+
   function screenIntro() {
     const count = state.questions.length;
     root().innerHTML =
@@ -61,7 +82,8 @@
       "Daarna kun je ze niet meer wijzigen.</p>" +
       '<button class="btn btn--primary btn--lg btn--block mt-4" type="button" id="start-test">Start de test</button>' +
       '<a class="btn btn--ghost btn--block mt-2" href="dashboard.html">Nog niet</a>' +
-      "</div>";
+      "</div>" +
+      jokerNotice();
 
     document.getElementById("start-test").addEventListener("click", function () {
       state.startedAt = Date.now();

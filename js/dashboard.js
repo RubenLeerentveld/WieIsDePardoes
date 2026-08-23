@@ -190,7 +190,7 @@
           '<div class="rank__row' + (me ? " rank__row--me" : "") + '"' +
           (out ? ' style="opacity:.45"' : "") + ">" +
           '<span class="rank__pos numeral">' + (out ? "✕" : "•") + "</span>" +
-          '<span class="avatar avatar--sm rank__avatar">' + util.esc(G.initialsOf(player)) + "</span>" +
+          G.avatar(player, "avatar--sm rank__avatar") +
           '<span class="rank__body"><span class="rank__name">' + util.esc(player.name) + "</span>" +
           '<span class="rank__meta">' +
           (out ? "Afgevallen op dag " + util.esc(player.eliminatedDay || "?") : "Nog in het spel") +

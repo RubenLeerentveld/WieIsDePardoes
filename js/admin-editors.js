@@ -32,6 +32,43 @@
     );
   }
 
+  /**
+   * Schaalt een gekozen foto terug naar een klein vierkant en levert een
+   * data-URI op. Die gaat mee in players.json, want een statische site kan
+   * geen bestanden ontvangen. 256px bij kwaliteit 0.72 is ongeveer 15 kB —
+   * met zes spelers blijft players.json ruim onder de limiet van nginx.
+   */
+  function resizePhoto(file, size) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = function () {
+        reject(new Error("Kan dit bestand niet lezen."));
+      };
+      reader.onload = function () {
+        const image = new Image();
+        image.onerror = function () {
+          reject(new Error("Dit lijkt geen afbeelding te zijn."));
+        };
+        image.onload = function () {
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+
+          // Vierkant uitsnijden vanuit het midden, zodat niets uitgerekt wordt.
+          const side = Math.min(image.width, image.height);
+          const offsetX = (image.width - side) / 2;
+          const offsetY = (image.height - side) / 2;
+
+          const context = canvas.getContext("2d");
+          context.drawImage(image, offsetX, offsetY, side, side, 0, 0, size, size);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   /* ========================================================================
      1. QUESTIONS
      ======================================================================== */
@@ -642,6 +679,7 @@
      ======================================================================== */
   const playersEditor = {
     showPins: false,
+    pendingPhoto: "",
 
     init() {
       document.getElementById("add-player").addEventListener("click", function () {
@@ -681,7 +719,8 @@
 
           return (
             "<tr" + (player.eliminated ? ' style="opacity:.5"' : "") + ">" +
-            "<td>" + util.esc(player.name) + "</td>" +
+            '<td><div class="row" style="gap:.6rem;flex-wrap:nowrap">' +
+            G.avatar(player, "avatar--sm") + util.esc(player.name) + "</div></td>" +
             '<td class="numeral">' +
             (playersEditor.showPins
               ? util.esc(player.pin)
@@ -898,6 +937,9 @@
       const isNew = !player;
       const model = player || { id: "", name: "", pin: "", note: "", joined: "" };
 
+      // Losse variabele: pas bij Opslaan gaat de foto het record in.
+      playersEditor.pendingPhoto = model.photo || "";
+
       admin.openModal(
         '<span class="eyebrow">' + (isNew ? "Nieuwe speler" : util.esc(model.name)) + "</span>" +
         '<h2 id="editor-title" class="mt-2">' + (isNew ? "Speler toevoegen" : "Speler bewerken") + "</h2>" +
@@ -907,6 +949,19 @@
         fieldRow("Pincode", '<input class="input" type="text" id="p-pin" inputmode="numeric" value="' + util.esc(model.pin) + '">') +
         fieldRow("Aantekening", '<input class="input" type="text" id="p-note" value="' + util.esc(model.note || "") + '">',
           "Verschijnt handgeschreven op het onderzoeksbord.") +
+
+        '<div class="field"><span class="field__label">Profielfoto</span>' +
+        '<div class="photo-picker">' +
+        '<div class="photo-picker__preview" id="p-photo-preview">' +
+        (model.photo ? '<img src="' + util.esc(model.photo) + '" alt="">' : "") +
+        "</div>" +
+        '<div class="photo-picker__body">' +
+        '<input class="input" type="file" id="p-photo" accept="image/*">' +
+        '<span class="field__hint">Wordt teruggeschaald naar 256 bij 256 pixels. ' +
+        'Een foto uit de camera mag; hij wordt vanzelf vierkant gesneden.</span>' +
+        '<button class="btn btn--sm btn--ghost mt-2" type="button" data-role="clear-photo">Foto wissen</button>' +
+        "</div></div></div>" +
+
         '<div id="p-error"></div>' +
         "</div>" +
         '<div class="actionbar">' +
@@ -914,6 +969,29 @@
         '<button class="btn btn--primary" type="button" data-role="save">Opslaan</button>' +
         "</div>",
         function (panel) {
+          const input = panel.querySelector("#p-photo");
+          const preview = panel.querySelector("#p-photo-preview");
+
+          input.addEventListener("change", function () {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            resizePhoto(file, 256)
+              .then(function (dataUri) {
+                playersEditor.pendingPhoto = dataUri;
+                preview.innerHTML = '<img src="' + util.esc(dataUri) + '" alt="">';
+              })
+              .catch(function (error) {
+                util.fill("#p-error", WIDM.notice("Foto mislukt", error.message, "danger"));
+              });
+          });
+
+          panel.querySelector('[data-role="clear-photo"]').addEventListener("click", function () {
+            playersEditor.pendingPhoto = "";
+            preview.innerHTML = "";
+            input.value = "";
+          });
+
           panel.querySelector('[data-role="cancel"]').addEventListener("click", admin.closeModal);
           panel.querySelector('[data-role="save"]').addEventListener("click", function () {
             playersEditor.save(model, isNew);
@@ -938,14 +1016,19 @@
         return;
       }
 
-      const record = {
+      // Beginnen bij het bestaande record: anders verliest een speler bij het
+      // bewerken zijn afvalstatus, en dat merk je pas op het bord.
+      const record = Object.assign({}, model, {
         id: id,
         name: name,
         pin: pin,
         initials: util.initials(name),
         joined: model.joined || new Date().toISOString().slice(0, 10),
         note: document.getElementById("p-note").value.trim(),
-      };
+        photo: playersEditor.pendingPhoto || "",
+        eliminated: !!model.eliminated,
+        eliminatedDay: model.eliminatedDay || null,
+      });
 
       WIDM.data.update("players", function (list) {
         const index = list.findIndex(function (entry) {
