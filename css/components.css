@@ -1565,8 +1565,11 @@
 .seal--sm { width: 38px; height: 38px; }
 .seal--lg { width: clamp(104px, 30vw, 140px); height: clamp(104px, 30vw, 140px); }
 
-/* Kaarslicht eromheen op de voorpagina */
+/* Kaarslicht eromheen op de voorpagina.
+   display:flex is nodig: .seal is inline-flex, en op een inline element doet
+   margin:auto niets. Zo staat het zegel wel netjes in het midden. */
 .gate__seal {
+  display: flex;
   margin: 0 auto var(--sp-4);
   box-shadow:
     0 0 0 1px rgba(201, 162, 39, 0.55),
