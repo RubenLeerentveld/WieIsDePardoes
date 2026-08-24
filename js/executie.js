@@ -1,12 +1,16 @@
 /* ==========================================================================
    executie.js — het moment waarop iemand afvalt
 
-   Nagebouwd naar de televisieversie: de spelleider typt een naam, er valt een
-   stilte, en dan kleurt het scherm. Groen betekent door, rood betekent einde.
+   Twee gescheiden stappen, met opzet:
 
-   De spelleider stelt de uitslag van tevoren in en geeft daarna de telefoon
-   uit handen. Vanaf dat moment is er niets meer te bedienen en verraadt het
-   scherm ook niets — pas na de stilte verschijnt de uitslag.
+   1. VOORBEREIDEN — vooraf, alleen jij. De app rekent uit wie er het slechtst
+      voorstaat op de test van deze dag en stelt die voor. Jij bevestigt of
+      kiest iemand anders. Wat je aanwijst blijft onzichtbaar voor spelers;
+      het bord toont alleen wie al echt is afgevallen.
+
+   2. DE CEREMONIE — met z'n allen, op de tv. Je typt een naam, vliegt door
+      de poort, en daar staat de uitslag. Er valt op dat moment niets meer te
+      beslissen: dat is 's middags al gebeurd.
    ========================================================================== */
 
 (function (WIDM) {
@@ -16,81 +20,181 @@
   const G = WIDM.game;
   const admin = WIDM.admin;
 
-  // Hoe lang de stilte duurt. Lang genoeg om ongemakkelijk te worden.
-  const SUSPENSE_MS = 5000;
+  // Hoe lang de vlucht door de poort duurt.
+  const FLIGHT_MS = 6200;
 
   let timer = null;
 
-  /* ------------------------------------------------------------------------
-     Voorbereiden
-     ------------------------------------------------------------------------ */
+  /* ========================================================================
+     1. Voorbereiden
+     ======================================================================== */
   function renderSetup() {
-    const players = G.players();
     const host = document.getElementById("executie-setup");
+    const day = G.game().currentDay || 1;
+    const ranking = G.eliminationRanking(day);
 
-    if (!players.length) {
+    if (!ranking.length) {
       host.innerHTML =
         '<div class="card card--pad-lg">' +
-        WIDM.emptyState("Geen spelers", "Voeg eerst spelers toe bij Spelers.", "feather") +
+        WIDM.emptyState("Geen spelers", "Iedereen is al af, of er zijn nog geen spelers.", "feather") +
         "</div>";
       return;
     }
 
+    const suggestion = ranking[0];
+    const marked = G.pendingEliminations();
+
     host.innerHTML =
-      '<div class="card card--pad-lg">' +
-      '<div class="card__head"><h2 class="card__title">Wie is aan de beurt?</h2></div>' +
-
-      '<div class="field">' +
-      '<label class="field__label" for="ex-name">Naam</label>' +
-      '<input class="input" type="text" id="ex-name" list="ex-players" autocomplete="off" ' +
-      'autocapitalize="words" spellcheck="false" placeholder="Typ een naam">' +
-      '<datalist id="ex-players">' +
-      players
-        .map(function (player) {
-          return '<option value="' + util.esc(player.name) + '"></option>';
-        })
-        .join("") +
-      "</datalist>" +
-      '<span class="field__hint">Zoals in de uitzending: typ de naam voluit.</span>' +
+      // ---- Voorstel -------------------------------------------------------
+      '<div class="card card--danger card--pad-lg">' +
+      '<div class="card__head"><h2 class="card__title">Voorstel voor dag ' + day + "</h2>" +
+      '<span class="chip">Jij beslist</span></div>' +
+      (suggestion.submitted
+        ? '<p class="mt-2">Volgens de test staat <strong>' + util.esc(suggestion.player.name) +
+          "</strong> er het slechtst voor: " + suggestion.score.correct + " van " +
+          suggestion.score.total + " goed in " + util.esc(util.duration(suggestion.seconds)) + "." +
+          (suggestion.score.jokersUsed
+            ? " Inclusief " + suggestion.score.jokersUsed + " joker."
+            : "") +
+          "</p>"
+        : '<p class="mt-2"><strong>' + util.esc(suggestion.player.name) +
+          "</strong> heeft de test van deze dag niet ingeleverd.</p>") +
+      '<p class="field__hint mt-2">Minste goede antwoorden eerst, bij gelijke stand de ' +
+      "langzaamste. Kijk het na voordat je het vastlegt.</p>" +
       "</div>" +
 
-      '<div id="ex-error" class="mt-3"></div>' +
-
-      '<div class="card__head mt-4"><h2 class="card__title">De uitslag</h2></div>' +
-      '<p class="field__hint">Kies nu, voordat je de telefoon uit handen geeft. ' +
-      "Daarna is er niets meer te zien of te bedienen tot de uitslag valt.</p>" +
-
-      '<div class="grid grid--2 mt-3">' +
-      '<button class="btn btn--lg" type="button" data-verdict="door">Door</button>' +
-      '<button class="btn btn--lg btn--danger" type="button" data-verdict="af">Afgevallen</button>' +
-      "</div>" +
-
-      '<p class="field__hint mt-4">Bij <strong>afgevallen</strong> wordt de speler meteen ' +
-      "op het bord bijgewerkt. Bij <strong>door</strong> verandert er niets.</p>" +
-      "</div>" +
-
+      // ---- Volledige rangschikking ----------------------------------------
       '<div class="card card--plain mt-4">' +
-      '<div class="card__head"><h2 class="card__title">Nog in het spel</h2></div>' +
-      '<div class="row">' +
-      players
-        .map(function (player) {
+      '<div class="card__head"><h2 class="card__title">Stand op de test van dag ' + day + "</h2>" +
+      '<span class="faint" style="font-size:.78rem">slechtste bovenaan</span></div>' +
+      '<div class="table-wrap"><table class="table">' +
+      "<thead><tr><th></th><th>Speler</th><th>Score</th><th>Tijd</th><th>Aanwijzen</th></tr></thead><tbody>" +
+      ranking
+        .map(function (row, index) {
+          const isMarked = !!row.player.pendingElimination;
           return (
-            '<span class="chip ' + (player.eliminated ? "chip--red" : "chip--green") + '">' +
-            util.esc(player.name) + (player.eliminated ? " · af" : "") +
-            "</span>"
+            "<tr" + (isMarked ? ' style="background:rgba(140,36,56,.16)"' : "") + ">" +
+            '<td class="faint numeral">' + (index + 1) + "</td>" +
+            '<td><div class="row" style="gap:.6rem;flex-wrap:nowrap">' +
+            G.avatar(row.player, "avatar--sm") + util.esc(row.player.name) +
+            (index === 0 ? ' <span class="chip chip--red">voorstel</span>' : "") +
+            "</div></td>" +
+            '<td class="table__num">' +
+            (row.submitted
+              ? row.score.correct + "/" + row.score.total +
+                (row.score.jokersUsed ? ' <span class="chip chip--gold">+' + row.score.jokersUsed + "</span>" : "")
+              : '<span class="chip chip--red">niet ingeleverd</span>') +
+            "</td>" +
+            '<td class="table__num">' + (row.submitted ? util.esc(util.duration(row.seconds)) : "—") + "</td>" +
+            "<td>" +
+            '<label class="switch"><input type="checkbox" data-mark="' + util.esc(row.player.id) + '"' +
+            (isMarked ? " checked" : "") + '><span class="switch__track"></span>' +
+            '<span class="switch__label">Valt af</span></label>' +
+            "</td></tr>"
           );
         })
         .join("") +
-      "</div></div>";
+      "</tbody></table></div>" +
+      '<p class="field__hint mt-3">Je mag er meer dan een aanwijzen. Spelers zien hier ' +
+      "niets van: het bord verandert pas tijdens de ceremonie.</p>" +
+      "</div>" +
 
-    util.$$("[data-verdict]", host).forEach(function (button) {
-      button.addEventListener("click", function () {
-        start(button.dataset.verdict);
+      // ---- Klaarzetten ----------------------------------------------------
+      '<div class="card card--pad-lg mt-4">' +
+      '<div class="card__head"><h2 class="card__title">Klaar voor de ceremonie</h2></div>' +
+      (marked.length
+        ? '<p class="mt-2">Aangewezen: ' +
+          marked.map(function (player) {
+            return "<strong>" + util.esc(player.name) + "</strong>";
+          }).join(", ") + ". Iedereen die je verder intypt krijgt <em>door</em>.</p>"
+        : '<p class="mt-2 muted">Nog niemand aangewezen. Dan gaat vanavond iedereen door — ' +
+          "ook dat kan een ronde zijn.</p>") +
+      '<button class="btn btn--primary btn--lg btn--block mt-4" type="button" data-role="begin">' +
+      "Start de ceremonie</button>" +
+      '<p class="field__hint mt-3">Zet je scherm op de tv voordat je hierop drukt. ' +
+      "De pagina gaat schermvullend en toont alleen nog een invoerveld.</p>" +
+      "</div>";
+
+    util.$$("[data-mark]", host).forEach(function (input) {
+      input.addEventListener("change", function () {
+        setMark(input.dataset.mark, input.checked);
       });
     });
+
+    host.querySelector('[data-role="begin"]').addEventListener("click", beginCeremony);
   }
 
-  /** Naam los typen mag; hoofdletters en spaties doen niet mee. */
+  function setMark(playerId, marked) {
+    WIDM.data.update("players", function (list) {
+      const entry = list.find(function (item) {
+        return item.id === playerId;
+      });
+      if (entry) entry.pendingElimination = !!marked;
+      return list;
+    });
+    admin.refreshBanner();
+    renderSetup();
+  }
+
+  /* ========================================================================
+     2. De ceremonie
+     ======================================================================== */
+  function beginCeremony() {
+    const stage = document.getElementById("ceremony");
+    stage.hidden = false;
+
+    // Schermvullend voor op de tv. Mag mislukken; dan is het gewoon een
+    // overlay over de hele pagina.
+    if (stage.requestFullscreen) {
+      stage.requestFullscreen().catch(function () {});
+    }
+
+    askName();
+  }
+
+  function askName() {
+    const stage = document.getElementById("ceremony");
+    stage.className = "ceremony";
+
+    const names = G.activePlayers()
+      .map(function (player) {
+        return '<option value="' + util.esc(player.name) + '"></option>';
+      })
+      .join("");
+
+    stage.innerHTML =
+      '<div class="ceremony__inner">' +
+      '<span class="ceremony__eyebrow">De executie</span>' +
+      '<form id="ceremony-form" class="ceremony__form">' +
+      '<label class="visually-hidden" for="ceremony-name">Naam van de speler</label>' +
+      '<input class="ceremony__input" type="text" id="ceremony-name" list="ceremony-names" ' +
+      'autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Typ een naam">' +
+      "<datalist id=\"ceremony-names\">" + names + "</datalist>" +
+      "</form>" +
+      '<p class="ceremony__whisper">Druk op enter.</p>' +
+      '<button class="btn btn--ghost btn--sm ceremony__exit" type="button" data-role="quit">Stoppen</button>' +
+      "</div>";
+
+    const input = document.getElementById("ceremony-name");
+    input.focus();
+
+    document.getElementById("ceremony-form").addEventListener("submit", function (event) {
+      event.preventDefault();
+      const player = findPlayer(input.value);
+      if (!player) {
+        input.value = "";
+        input.classList.add("ceremony__input--wrong");
+        window.setTimeout(function () {
+          input.classList.remove("ceremony__input--wrong");
+        }, 600);
+        return;
+      }
+      flyThroughGate(player);
+    });
+
+    stage.querySelector('[data-role="quit"]').addEventListener("click", quit);
+  }
+
   function findPlayer(typed) {
     const needle = String(typed || "").trim().toLowerCase();
     if (!needle) return null;
@@ -99,48 +203,30 @@
     }) || null;
   }
 
-  /* ------------------------------------------------------------------------
-     De ceremonie
-     ------------------------------------------------------------------------ */
-  function start(verdict) {
-    const typed = document.getElementById("ex-name").value;
-    const player = findPlayer(typed);
+  /** De vlucht door de poort. Twaalf bogen die naar je toe komen. */
+  function flyThroughGate(player) {
+    const stage = document.getElementById("ceremony");
+    stage.className = "ceremony ceremony--flight";
 
-    if (!player) {
-      util.fill(
-        "#ex-error",
-        WIDM.notice("Onbekende naam", "Deze speler staat niet in het dossier.", "danger")
-      );
-      return;
+    let arches = "";
+    for (let index = 0; index < 12; index += 1) {
+      arches += '<span class="gate__arch" style="--i:' + index + '"></span>';
     }
 
-    util.fill("#ex-error", "");
-    suspense(player, verdict);
-  }
-
-  function suspense(player, verdict) {
-    const stage = document.getElementById("ceremony");
-    stage.hidden = false;
-    stage.className = "ceremony ceremony--suspense";
-
     stage.innerHTML =
-      '<div class="ceremony__inner">' +
-      '<span class="ceremony__eyebrow">Het oordeel</span>' +
+      '<div class="gate" aria-hidden="true">' + arches + '<span class="gate__glow"></span></div>' +
+      '<div class="ceremony__inner ceremony__inner--flight">' +
       '<p class="ceremony__name">' + util.esc(player.name) + "</p>" +
-      '<div class="ceremony__pulse" aria-hidden="true"></div>' +
-      '<p class="ceremony__whisper">Kijk naar het scherm.</p>' +
       "</div>";
 
-    // Geen knoppen tijdens de stilte: er valt niets te bedienen en niets af
-    // te lezen. De telefoon kan de kring rond.
     timer = window.setTimeout(function () {
-      reveal(player, verdict);
-    }, SUSPENSE_MS);
+      reveal(player);
+    }, FLIGHT_MS);
   }
 
-  function reveal(player, verdict) {
+  function reveal(player) {
     const stage = document.getElementById("ceremony");
-    const survived = verdict === "door";
+    const survived = !player.pendingElimination;
 
     stage.className = "ceremony " + (survived ? "ceremony--door" : "ceremony--af");
 
@@ -152,19 +238,21 @@
       '<p class="ceremony__name">' + util.esc(player.name) + "</p>" +
       '<p class="ceremony__verdict">' + (survived ? "Door" : "Afgevallen") + "</p>" +
       '<p class="ceremony__whisper">' +
-      (survived
-        ? "Je onderzoek gaat verder."
-        : "Jouw spel eindigt hier. Pardoes loopt door.") +
+      (survived ? "Je onderzoek gaat verder." : "Jouw spel eindigt hier. Pardoes loopt door.") +
       "</p>" +
-      '<button class="btn btn--ghost mt-5" type="button" data-role="close">Sluiten</button>' +
-      "</div>";
+      '<div class="row mt-5" style="justify-content:center">' +
+      '<button class="btn btn--primary" type="button" data-role="next">Volgende naam</button>' +
+      '<button class="btn btn--ghost" type="button" data-role="quit">Stoppen</button>' +
+      "</div></div>";
 
-    if (!survived) markEliminated(player);
+    if (!survived) applyElimination(player);
 
-    stage.querySelector('[data-role="close"]').addEventListener("click", close);
+    stage.querySelector('[data-role="next"]').addEventListener("click", askName);
+    stage.querySelector('[data-role="quit"]').addEventListener("click", quit);
   }
 
-  function markEliminated(player) {
+  /** Nu pas wordt het echt: het bord verandert en de markering gaat weg. */
+  function applyElimination(player) {
     const day = G.game().currentDay || 1;
 
     WIDM.data.update("players", function (list) {
@@ -174,31 +262,31 @@
       if (entry) {
         entry.eliminated = true;
         entry.eliminatedDay = day;
+        entry.pendingElimination = false;
       }
       return list;
     });
   }
 
-  function close() {
+  function quit() {
     window.clearTimeout(timer);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
     const stage = document.getElementById("ceremony");
     stage.hidden = true;
     stage.innerHTML = "";
     stage.className = "ceremony";
-
-    document.getElementById("ex-name").value = "";
     admin.refreshBanner();
     renderSetup();
   }
 
-  // Ontsnappen kan alleen als de uitslag al gevallen is; tijdens de stilte
-  // niet, anders drukt iemand hem per ongeluk weg.
+  // Tijdens de vlucht doet Escape niets: niemand drukt hem per ongeluk weg.
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") return;
     const stage = document.getElementById("ceremony");
     if (!stage || stage.hidden) return;
-    if (stage.classList.contains("ceremony--suspense")) return;
-    close();
+    if (stage.classList.contains("ceremony--flight")) event.preventDefault();
   });
 
   admin.register(function () {

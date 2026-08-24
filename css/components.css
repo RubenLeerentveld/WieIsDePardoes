@@ -1639,19 +1639,113 @@
   color: rgba(236, 230, 214, 0.72);
 }
 
-/* Trage hartslag tijdens de stilte */
-.ceremony__pulse {
-  width: 14px;
-  height: 14px;
-  margin: var(--sp-5) auto 0;
-  border-radius: 50%;
-  background: var(--gold-500);
-  box-shadow: 0 0 26px rgba(201, 162, 39, 0.7);
-  animation: heartbeat 1.6s ease-in-out infinite;
+/* Het invoerveld: bedoeld om van een meter of drie af te lezen. */
+.ceremony__form {
+  margin-top: var(--sp-5);
 }
 
-.ceremony--suspense .ceremony__name {
-  animation: breathe 3.4s ease-in-out infinite;
+.ceremony__input {
+  width: 100%;
+  padding: 0.4rem 0 0.6rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 9vw, 4.4rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--gold-200);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid rgba(201, 162, 39, 0.45);
+  outline: none;
+  caret-color: var(--gold-400);
+}
+
+.ceremony__input::placeholder {
+  color: rgba(236, 230, 214, 0.22);
+  letter-spacing: 0.1em;
+}
+
+.ceremony__input:focus {
+  border-bottom-color: var(--gold-400);
+}
+
+/* Onbekende naam: even schudden, verder niets zeggen. */
+.ceremony__input--wrong {
+  animation: shake 0.5s ease;
+  border-bottom-color: var(--burgundy-500);
+}
+
+.ceremony__exit {
+  position: absolute;
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  opacity: 0.35;
+}
+
+.ceremony__exit:hover {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   De poort — bogen die door de diepte op je af komen
+
+   Puur CSS met perspective. De bogen staan op verschillende afstanden en
+   schuiven naar de kijker toe; het perspectief krimpt gaandeweg, waardoor het
+   voelt alsof je versnelt. Aan het eind wast er licht over het scherm.
+   -------------------------------------------------------------------------- */
+.gate {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 700px;
+  perspective-origin: 50% 48%;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.gate__arch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 62vmin;
+  height: 80vmin;
+  margin: -40vmin 0 0 -31vmin;
+  border: 2px solid rgba(201, 162, 39, 0.5);
+  /* Een poortboog: rond van boven, recht van onder. */
+  border-radius: 50% 50% 5% 5% / 40% 40% 3% 3%;
+  box-shadow:
+    0 0 40px rgba(201, 162, 39, 0.2),
+    inset 0 0 70px rgba(201, 162, 39, 0.07);
+  opacity: 0;
+  animation: arch-fly 2.6s cubic-bezier(0.5, 0, 0.9, 0.6) infinite;
+  animation-delay: calc(var(--i) * -0.216s);
+}
+
+.gate__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 48%,
+    rgba(243, 224, 168, 0.95) 0%,
+    rgba(201, 162, 39, 0.4) 20%,
+    transparent 62%);
+  opacity: 0;
+  animation: gate-flash 6.2s ease-in forwards;
+}
+
+.ceremony--flight {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(20, 46, 34, 0.5) 0%, transparent 55%),
+    linear-gradient(180deg, #040a07 0%, #010302 100%);
+}
+
+.ceremony__inner--flight {
+  position: relative;
+  z-index: 2;
+}
+
+.ceremony--flight .ceremony__name {
+  animation: name-approach 6.2s ease-in both;
+  text-shadow: 0 0 50px rgba(201, 162, 39, 0.5);
 }
 
 /* De uitslag */

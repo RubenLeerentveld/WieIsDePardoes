@@ -69,16 +69,33 @@
   50%      { text-shadow: 0 0 46px rgba(226, 194, 104, 0.55); }
 }
 
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1); opacity: 0.85; }
-  14%      { transform: scale(1.55); opacity: 1; }
-  28%      { transform: scale(1); opacity: 0.85; }
-  42%      { transform: scale(1.35); opacity: 1; }
+/* Een boog komt van ver naar voren en glijdt langs de kijker. */
+@keyframes arch-fly {
+  0%   { transform: translateZ(-1800px) rotate(0deg) scale(0.92); opacity: 0; }
+  12%  { opacity: 0.9; }
+  85%  { opacity: 0.5; }
+  100% { transform: translateZ(430px) rotate(4deg) scale(1.25); opacity: 0; }
 }
 
-@keyframes breathe {
-  0%, 100% { opacity: 0.72; }
-  50%      { opacity: 1; }
+/* Licht dat aan het eind van de vlucht over het scherm wast. */
+@keyframes gate-flash {
+  0%, 68% { opacity: 0; transform: scale(0.6); }
+  93%     { opacity: 0.9; transform: scale(1.7); }
+  100%    { opacity: 0; transform: scale(2.5); }
+}
+
+/* De naam komt gaandeweg dichterbij. */
+@keyframes name-approach {
+  from { transform: scale(0.86); opacity: 0.5; letter-spacing: 0.3em; }
+  to   { transform: scale(1.14); opacity: 1; letter-spacing: 0.02em; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-9px); }
+  40%      { transform: translateX(9px); }
+  60%      { transform: translateX(-6px); }
+  80%      { transform: translateX(6px); }
 }
 
 @keyframes verdict-in {

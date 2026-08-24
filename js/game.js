@@ -420,6 +420,46 @@ window.WIDM = window.WIDM || {};
 
 
   /* ------------------------------------------------------------------------
+     De executie
+     ------------------------------------------------------------------------ */
+  /**
+   * Wie staat er het slechtst voor op de test van deze dag?
+   *
+   * Minste goede antwoorden eerst; bij gelijke stand de langzaamste, precies
+   * zoals in de uitzending. Wie niets heeft ingeleverd staat bovenaan. Jokers
+   * tellen gewoon mee — daar zijn ze voor.
+   *
+   * Dit is nadrukkelijk een voorstel: de spelleider beslist.
+   */
+  function eliminationRanking(day) {
+    return activePlayers()
+      .map(function (player) {
+        const result = resultFor(player.id, day);
+        const score = result ? scoreResult(result) : null;
+        return {
+          player: player,
+          result: result,
+          score: score,
+          correct: score ? score.correct : -1,
+          seconds: result ? Number(result.durationSeconds) || 0 : Infinity,
+          submitted: !!result,
+        };
+      })
+      .sort(function (a, b) {
+        if (a.correct !== b.correct) return a.correct - b.correct;
+        if (a.seconds !== b.seconds) return b.seconds - a.seconds;
+        return a.player.name.localeCompare(b.player.name, "nl");
+      });
+  }
+
+  /** Wie de spelleider heeft aangewezen, maar nog niet is onthuld. */
+  function pendingEliminations() {
+    return players().filter(function (player) {
+      return player.pendingElimination;
+    });
+  }
+
+  /* ------------------------------------------------------------------------
      Submitting a test
      ------------------------------------------------------------------------ */
   /**
@@ -552,6 +592,8 @@ window.WIDM = window.WIDM || {};
     testStatus: testStatus,
     openTestFor: openTestFor,
     completedCount: completedCount,
+    eliminationRanking: eliminationRanking,
+    pendingEliminations: pendingEliminations,
     submitTest: submitTest,
     verdict: verdict,
     compass: compass,
