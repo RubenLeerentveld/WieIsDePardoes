@@ -229,7 +229,10 @@
           return;
         }
 
-        window.location.href = destination("dashboard.html");
+        // De raaf neemt je mee naar je dossier.
+        WIDM.flyAway(function () {
+          window.location.href = destination("dashboard.html");
+        });
       });
     }
 

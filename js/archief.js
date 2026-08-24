@@ -167,8 +167,7 @@
 
         if (normalise(input.value) === normalise(envelope.code)) {
           markOpened(id);
-          WIDM.toast("De envelop is open.");
-          render();
+          openWithFlourish(form.closest("[data-envelope]"), envelope);
           return;
         }
 
@@ -177,6 +176,36 @@
         input.focus();
       });
     });
+  }
+
+  /**
+   * De envelop gaat open: de flap klapt omhoog, het zegel springt weg en de
+   * brief schuift eruit. Daarna nemen we de gewone kaart over, zodat de
+   * pagina daarna een rustige lay-out heeft.
+   */
+  function openWithFlourish(card, envelope) {
+    if (!card || util.prefersReducedMotion()) {
+      WIDM.toast("De envelop is open.");
+      render();
+      return;
+    }
+
+    card.outerHTML =
+      '<div class="envelope" data-envelope="' + util.esc(envelope.id) + '">' +
+      '<div class="envelope__letter">' +
+      '<p style="font-family:var(--font-display);font-size:.62rem;letter-spacing:.24em;' +
+      'text-transform:uppercase">Dag ' + util.esc(envelope.day) + "</p>" +
+      '<p class="whisper" style="color:#6a2231;font-size:1.2rem;line-height:1.35;margin-top:.3rem">' +
+      util.esc(envelope.hint) + "</p></div>" +
+      '<div class="envelope__body"></div>' +
+      '<div class="envelope__flap"></div>' +
+      '<div class="envelope__seal"></div>' +
+      "</div>";
+
+    window.setTimeout(function () {
+      WIDM.toast("De envelop is open.");
+      render();
+    }, 1500);
   }
 
   WIDM.page({

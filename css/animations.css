@@ -103,6 +103,57 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* De raaf slaat met de vleugels en verdwijnt het bos in. */
+@keyframes raven-flap {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.28) translateY(6px); }
+}
+
+@keyframes raven-away {
+  0%   { transform: translate3d(0, 30px, 0) scale(1) rotate(-2deg); opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translate3d(16vw, -42vh, 0) scale(0.07) rotate(6deg); opacity: 0; }
+}
+
+/* De flap klapt open, de brief schuift eruit. */
+@keyframes flap-open {
+  from { transform: rotateX(0deg); }
+  to   { transform: rotateX(-168deg); }
+}
+
+@keyframes seal-pop {
+  0%   { transform: scale(1); opacity: 1; }
+  60%  { transform: scale(1.25) rotate(-12deg); opacity: 1; }
+  100% { transform: scale(0.7) translateY(26px) rotate(-30deg); opacity: 0; }
+}
+
+@keyframes letter-out {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-88px); }
+}
+
+/* Het lakzegel barst in tweeen en valt weg. */
+@keyframes crack-flash {
+  0%   { opacity: 0; transform: scaleY(0.2); }
+  40%  { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1); }
+}
+
+@keyframes wax-left {
+  0%   { transform: translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-46px) translateY(58px) rotate(-24deg); opacity: 0; }
+}
+
+@keyframes wax-right {
+  0%   { transform: translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(46px) translateY(58px) rotate(24deg); opacity: 0; }
+}
+
+/* De rode draad tekent zichzelf van speld naar speld. */
+@keyframes thread-draw {
+  to { stroke-dashoffset: 0; }
+}
+
 /* --------------------------------------------------------------------------
    Applied classes
    -------------------------------------------------------------------------- */

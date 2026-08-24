@@ -86,11 +86,42 @@
       jokerNotice();
 
     document.getElementById("start-test").addEventListener("click", function () {
-      state.startedAt = Date.now();
-      state.index = 0;
-      state.direction = "next";
-      screenQuestion();
+      breakSeal(function () {
+        state.startedAt = Date.now();
+        state.index = 0;
+        state.direction = "next";
+        screenQuestion();
+      });
     });
+  }
+
+  /**
+   * Het lakzegel barst in tweeen voordat de eerste vraag verschijnt. Zo voelt
+   * beginnen als een drempel in plaats van een knop.
+   */
+  function breakSeal(done) {
+    if (util.prefersReducedMotion()) {
+      done();
+      return;
+    }
+
+    const stage = document.createElement("div");
+    stage.className = "sealbreak";
+    stage.setAttribute("aria-hidden", "true");
+    stage.innerHTML =
+      '<div class="sealbreak__wax">' +
+      '<span class="sealbreak__half sealbreak__half--l"></span>' +
+      '<span class="sealbreak__half sealbreak__half--r"></span>' +
+      '<span class="sealbreak__crack"></span>' +
+      "</div>" +
+      '<p class="sealbreak__word">Het zegel is verbroken</p>';
+
+    document.body.appendChild(stage);
+
+    window.setTimeout(function () {
+      stage.remove();
+      done();
+    }, 1600);
   }
 
   /* ------------------------------------------------------------------------

@@ -288,6 +288,16 @@
       if (points.length > 2) markup += line(points[0], points[points.length - 1], 0.28);
       if (points.length > 3) markup += line(points[1], points[points.length - 2], 0.22);
       svg.innerHTML = markup;
+
+      // Elke draad tekent zichzelf van speld naar speld, kort na elkaar.
+      if (util.prefersReducedMotion()) return;
+      Array.from(svg.querySelectorAll("path")).forEach(function (path, index) {
+        const length = path.getTotalLength();
+        path.style.strokeDasharray = length;
+        path.style.strokeDashoffset = length;
+        path.style.animation =
+          "thread-draw 0.9s " + (0.15 + index * 0.13).toFixed(2) + "s ease-out forwards";
+      });
     }
 
     paint();

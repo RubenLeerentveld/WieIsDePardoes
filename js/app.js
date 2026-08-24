@@ -479,6 +479,44 @@ window.WIDM = window.WIDM || {};
   }
 
   /* ------------------------------------------------------------------------
+     De raaf
+     ------------------------------------------------------------------------ */
+  /**
+   * Laat een raaf het bos in vliegen en roept daarna `done` aan. Gebruikt na
+   * het inloggen: de pagina lost op, de vogel neemt je mee naar je dossier.
+   *
+   * Bij prefers-reduced-motion slaan we het hele tafereel over en gaan we
+   * meteen door — anders zit iemand twee seconden naar een stilstaand beeld
+   * te kijken.
+   */
+  function flyAway(done) {
+    if (util.prefersReducedMotion()) {
+      done();
+      return;
+    }
+
+    const stage = document.createElement("div");
+    stage.className = "raven-stage";
+    stage.setAttribute("aria-hidden", "true");
+    stage.innerHTML =
+      '<svg class="raven" viewBox="0 0 200 120" fill="currentColor">' +
+      // lijf en staart
+      '<path d="M100 30c5 0 9 7 9 17l-3 34 6 26-12-7-12 7 6-26-3-34c0-10 4-17 9-17Z"/>' +
+      // kop en snavel
+      '<circle cx="100" cy="27" r="8"/>' +
+      '<path d="M100 20 L118 24 L100 30 Z"/>' +
+      // vleugels, samen in een groep zodat ze als een paar slaan
+      '<g class="raven__wings">' +
+      '<path d="M93 50C68 36 38 30 4 42c34 10 60 22 88 26Z"/>' +
+      '<path d="M107 50c25-14 55-20 89-8-34 10-60 22-88 26Z"/>' +
+      "</g></svg>" +
+      '<p class="raven-stage__whisper">Ergens weet iemand meer dan jij.</p>';
+
+    document.body.appendChild(stage);
+    window.setTimeout(done, 1900);
+  }
+
+  /* ------------------------------------------------------------------------
      Page boot
      ------------------------------------------------------------------------ */
   /**
@@ -535,5 +573,6 @@ window.WIDM = window.WIDM || {};
   WIDM.notice = notice;
   WIDM.fatal = fatal;
   WIDM.page = page;
+  WIDM.flyAway = flyAway;
   WIDM.mountAtmosphere = mountAtmosphere;
 })(window.WIDM);

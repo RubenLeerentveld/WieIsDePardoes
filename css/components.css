@@ -1791,3 +1791,184 @@
 .ceremony__inner--reveal {
   animation: verdict-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+
+/* --------------------------------------------------------------------------
+   De raaf — vliegt het bos in zodra je bent ingelogd
+   -------------------------------------------------------------------------- */
+.raven-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, rgba(12, 26, 20, 0.92) 0%, #010302 70%);
+  animation: fade-in 0.35s ease both;
+}
+
+.raven {
+  width: min(340px, 62vw);
+  color: #05100b;
+  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.8));
+  animation: raven-away 2.2s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+/* De vleugels slaan door ze samen te knijpen en weer te openen. */
+.raven__wings {
+  transform-origin: 100px 52px;
+  animation: raven-flap 0.34s ease-in-out infinite;
+}
+
+.raven-stage__whisper {
+  position: absolute;
+  bottom: 14vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-hand);
+  font-size: 1.5rem;
+  color: rgba(236, 230, 214, 0.5);
+  white-space: nowrap;
+  animation: fade-in 1.2s 0.5s ease both;
+}
+
+/* --------------------------------------------------------------------------
+   De envelop — gaat open zodra de code klopt
+   -------------------------------------------------------------------------- */
+.envelope {
+  position: relative;
+  height: 210px;
+  perspective: 900px;
+}
+
+.envelope__body {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 132px;
+  background: linear-gradient(160deg, var(--parchment-400), var(--parchment-600));
+  border-radius: 3px;
+  box-shadow: var(--shadow-md);
+  z-index: 3;
+}
+
+/* De driehoek van de voorflap, zodat het als een envelop leest. */
+.envelope__body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(28deg, transparent 48%, rgba(42, 32, 21, 0.16) 49%, transparent 51%),
+    linear-gradient(-28deg, transparent 48%, rgba(42, 32, 21, 0.16) 49%, transparent 51%);
+}
+
+.envelope__flap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 84px;
+  background: linear-gradient(180deg, var(--parchment-200), var(--parchment-400));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  z-index: 4;
+  animation: flap-open 0.7s cubic-bezier(0.34, 1.3, 0.5, 1) forwards;
+}
+
+.envelope__seal {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #a5253a, #5c101f);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 5;
+  animation: seal-pop 0.45s ease forwards;
+}
+
+.envelope__letter {
+  position: absolute;
+  right: 6%;
+  left: 6%;
+  bottom: 34px;
+  padding: var(--sp-3);
+  color: var(--ink);
+  background: linear-gradient(150deg, var(--parchment-100), var(--parchment-200));
+  border-radius: 2px;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+  animation: letter-out 0.9s 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* --------------------------------------------------------------------------
+   Het lakzegel dat breekt bij de start van de test
+   -------------------------------------------------------------------------- */
+.sealbreak {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(10, 20, 15, 0.94) 0%, #010302 72%);
+  animation: fade-in 0.3s ease both;
+}
+
+.sealbreak__wax {
+  position: relative;
+  width: 132px;
+  height: 132px;
+}
+
+.sealbreak__half {
+  position: absolute;
+  top: 0;
+  width: 66px;
+  height: 132px;
+  background: radial-gradient(circle at 60% 34%, #a5253a 0%, #7a1728 46%, #4a0c18 100%);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.5);
+}
+
+.sealbreak__half--l {
+  left: 0;
+  border-radius: 66px 0 0 66px;
+  animation: wax-left 1s 0.35s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+.sealbreak__half--r {
+  right: 0;
+  border-radius: 0 66px 66px 0;
+  animation: wax-right 1s 0.35s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+.sealbreak__crack {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: 50%;
+  width: 3px;
+  margin-left: -1.5px;
+  background: linear-gradient(180deg, transparent, var(--gold-200), transparent);
+  opacity: 0;
+  z-index: 2;
+  animation: crack-flash 0.5s 0.2s ease forwards;
+}
+
+.sealbreak__word {
+  position: absolute;
+  bottom: 22vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  text-transform: uppercase;
+  color: var(--gold-500);
+  white-space: nowrap;
+  animation: fade-in 0.8s 0.7s ease both;
+}
