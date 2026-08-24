@@ -328,6 +328,10 @@ p {
 .atmos__dust {
   position: absolute;
   inset: 0;
+  /* Een canvas is een replaced element: met alleen inset:0 blijft hij op zijn
+     eigen 300x150 staan in plaats van uit te rekken. Vandaar expliciet. */
+  width: 100%;
+  height: 100%;
 }
 
 .atmos__vignette {

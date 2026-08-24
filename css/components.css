@@ -1693,7 +1693,7 @@
    schuiven naar de kijker toe; het perspectief krimpt gaandeweg, waardoor het
    voelt alsof je versnelt. Aan het eind wast er licht over het scherm.
    -------------------------------------------------------------------------- */
-.gate {
+.portal {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -1703,7 +1703,7 @@
   pointer-events: none;
 }
 
-.gate__arch {
+.portal__arch {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1721,7 +1721,7 @@
   animation-delay: calc(var(--i) * -0.216s);
 }
 
-.gate__glow {
+.portal__glow {
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at 50% 48%,

@@ -210,11 +210,11 @@
 
     let arches = "";
     for (let index = 0; index < 12; index += 1) {
-      arches += '<span class="gate__arch" style="--i:' + index + '"></span>';
+      arches += '<span class="portal__arch" style="--i:' + index + '"></span>';
     }
 
     stage.innerHTML =
-      '<div class="gate" aria-hidden="true">' + arches + '<span class="gate__glow"></span></div>' +
+      '<div class="portal" aria-hidden="true">' + arches + '<span class="portal__glow"></span></div>' +
       '<div class="ceremony__inner ceremony__inner--flight">' +
       '<p class="ceremony__name">' + util.esc(player.name) + "</p>" +
       "</div>";
