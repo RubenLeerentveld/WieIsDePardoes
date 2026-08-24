@@ -314,6 +314,41 @@ window.WIDM = window.WIDM || {};
     return records;
   }
 
+  /**
+   * Maakt alles in /inbox/ onschadelijk door er een leeg object overheen te
+   * schrijven. We hebben bewust geen DELETE aanstaan op de server, en dat
+   * hoeft ook niet: readInbox() eist speler, dag en antwoorden, dus een leeg
+   * object wordt voortaan genegeerd.
+   */
+  async function voidInbox() {
+    const listing = await fetchJson(INBOX_DIR, true);
+    if (!Array.isArray(listing)) return 0;
+
+    const files = listing
+      .filter(function (entry) {
+        return entry.type === "file" && /\.json$/i.test(entry.name);
+      })
+      .map(function (entry) {
+        return entry.name;
+      });
+
+    let cleared = 0;
+    for (const name of files) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const response = await fetch(INBOX_DIR + name, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        if (response.ok) cleared += 1;
+      } catch (error) {
+        /* volgende */
+      }
+    }
+    return cleared;
+  }
+
   /* ------------------------------------------------------------------------
      Back-up (nog steeds handig, maar niet meer nodig om te spelen)
      ------------------------------------------------------------------------ */
@@ -381,6 +416,7 @@ window.WIDM = window.WIDM || {};
     submitToInbox: submitToInbox,
     readInbox: readInbox,
     readOpened: readOpened,
+    voidInbox: voidInbox,
     saveOpened: saveOpened,
 
     exportFile: exportFile,

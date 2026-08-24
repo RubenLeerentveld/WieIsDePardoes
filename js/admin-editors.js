@@ -1155,6 +1155,18 @@
         '<div class="actionbar">' +
         '<button class="btn btn--sm" type="button" data-role="backup">' +
         WIDM.icon("download", "btn__icon") + "Back-up downloaden</button>" +
+        "</div></div>" +
+
+        '<div class="card card--danger card--pad-lg mt-4">' +
+        '<div class="card__head"><h2 class="card__title">Nieuw spel beginnen</h2></div>' +
+        '<p class="muted">Wist alle spelers, vragen, uitslagen, jokers en enveloppen ' +
+        "op de server, zet de dag op 1 en het bedrag op nul. De titel, de toegangscode " +
+        "en het openingsmoment blijven staan.</p>" +
+        '<p class="field__hint mt-2">Maak eerst een back-up als je het oude spel nog ' +
+        "wilt kunnen inzien. Dit is niet ongedaan te maken.</p>" +
+        '<div class="actionbar">' +
+        '<button class="btn btn--sm btn--danger" type="button" data-role="wipe">' +
+        WIDM.icon("trash", "btn__icon") + "Alles wissen en opnieuw beginnen</button>" +
         "</div></div>"
       );
 
@@ -1164,6 +1176,27 @@
       document.querySelector('[data-role="backup"]').addEventListener("click", function () {
         WIDM.data.exportBundle();
         WIDM.toast("Back-up gedownload.");
+      });
+
+      document.querySelector('[data-role="wipe"]').addEventListener("click", async function () {
+        const ok = await admin.confirm(
+          "Alles wissen?",
+          "Alle spelers, vragen, uitslagen, jokers en enveloppen verdwijnen van de " +
+            "server. Dit kun je niet terugdraaien.",
+          "Ja, wissen",
+          true
+        );
+        if (!ok) return;
+
+        const cleared = await admin.startFresh();
+        WIDM.toast(
+          cleared
+            ? "Alles gewist. " + cleared + " oude inzending(en) opgeruimd."
+            : "Alles gewist."
+        );
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 1200);
       });
     },
 

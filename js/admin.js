@@ -221,6 +221,57 @@
   }
 
   /* ------------------------------------------------------------------------
+     Schoon beginnen
+     ------------------------------------------------------------------------ */
+  /**
+   * Zet het hele spel terug naar nul op de server: geen spelers, vragen,
+   * uitslagen, jokers of enveloppen meer, dag 1 en nul verdiend.
+   *
+   * Blijft staan: de titel en de rest van de aankleding, de toegangscode en
+   * het openingsmoment. Die wil je bij een nieuwe ronde meestal houden.
+   *
+   * De testdagen worden vier lege, verzegelde dagen — hetzelfde skelet als
+   * waarmee het project geleverd wordt.
+   */
+  async function startFresh() {
+    const info = G.game();
+
+    WIDM.data.set("players", []);
+    WIDM.data.set("questions", []);
+    WIDM.data.set("results", []);
+    WIDM.data.set("jokers", []);
+    WIDM.data.set("envelopes", []);
+
+    WIDM.data.set("tests", [1, 2, 3, 4].map(function (day) {
+      return {
+        day: day,
+        title: "Dag " + day,
+        subtitle: "",
+        date: "",
+        available: false,
+        questionIds: [],
+      };
+    }));
+
+    WIDM.data.set("game", Object.assign({}, info, {
+      currentDay: 1,
+      totalDays: 4,
+      earned: 0,
+    }));
+
+    // Oude inzendingen in /inbox/ zouden anders bij de volgende keer
+    // "Inzendingen ophalen" alsnog terugkomen.
+    let cleared = 0;
+    try {
+      cleared = await WIDM.data.voidInbox();
+    } catch (error) {
+      /* niet fataal */
+    }
+
+    return cleared;
+  }
+
+  /* ------------------------------------------------------------------------
      Gegevenspaneel — back-up, niet meer nodig om te spelen
      ------------------------------------------------------------------------ */
   function renderDataPanel() {
@@ -400,6 +451,7 @@
     confirm: confirmDialog,
     refreshBanner: renderStatusBanner,
     collectInbox: collectInbox,
+    startFresh: startFresh,
     register: function (handler) {
       handlers.push(handler);
     },
