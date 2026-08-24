@@ -331,6 +331,7 @@ window.WIDM = window.WIDM || {};
     { href: "admin-tests.html", label: "Tests" },
     { href: "admin-players.html", label: "Spelers" },
     { href: "admin-archief.html", label: "Enveloppen" },
+    { href: "admin-executie.html", label: "Executie" },
     { href: "admin-game.html", label: "Spel" },
   ];
 

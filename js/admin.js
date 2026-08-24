@@ -387,6 +387,7 @@
       '<a class="btn btn--block" href="admin-tests.html">Tests openen of sluiten</a>' +
       '<a class="btn btn--block" href="admin-players.html">Spelers, jokers en afvallers</a>' +
       '<a class="btn btn--block" href="admin-archief.html">Enveloppen en codes</a>' +
+      '<a class="btn btn--block btn--danger" href="admin-executie.html">De executie</a>' +
       '<a class="btn btn--block" href="admin-game.html">Dag en bedrag aanpassen</a>' +
       "</div></div>"
     );

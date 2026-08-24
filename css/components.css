@@ -1578,3 +1578,122 @@
     inset 0 0 20px rgba(120, 92, 46, 0.3);
   animation: flicker 5.5s ease-in-out infinite;
 }
+
+
+/* --------------------------------------------------------------------------
+   De executie — schermvullend, zonder iets te bedienen
+
+   Tijdens de stilte staat er bewust niets op het scherm waaruit je de uitslag
+   kunt afleiden: geen kleur, geen knop, geen voortgangsbalk. Pas daarna wast
+   het scherm groen of rood.
+   -------------------------------------------------------------------------- */
+.ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5) var(--sp-4);
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(27, 66, 50, 0.35) 0%, transparent 60%),
+    linear-gradient(180deg, #060d0a 0%, #030605 100%);
+  transition: background 0.9s ease;
+}
+
+.ceremony[hidden] {
+  display: none;
+}
+
+.ceremony__inner {
+  width: min(560px, 100%);
+}
+
+.ceremony__eyebrow {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  text-transform: uppercase;
+  color: var(--gold-600);
+}
+
+.ceremony__name {
+  margin-top: var(--sp-3);
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 11vw, 4.4rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.ceremony__whisper {
+  margin: var(--sp-4) auto 0;
+  max-width: 30ch;
+  font-family: var(--font-hand);
+  font-size: 1.5rem;
+  color: rgba(236, 230, 214, 0.72);
+}
+
+/* Trage hartslag tijdens de stilte */
+.ceremony__pulse {
+  width: 14px;
+  height: 14px;
+  margin: var(--sp-5) auto 0;
+  border-radius: 50%;
+  background: var(--gold-500);
+  box-shadow: 0 0 26px rgba(201, 162, 39, 0.7);
+  animation: heartbeat 1.6s ease-in-out infinite;
+}
+
+.ceremony--suspense .ceremony__name {
+  animation: breathe 3.4s ease-in-out infinite;
+}
+
+/* De uitslag */
+.ceremony--door {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(35, 122, 78, 0.55) 0%, transparent 62%),
+    linear-gradient(180deg, #08301e 0%, #04140c 100%);
+}
+
+.ceremony--af {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(140, 36, 56, 0.55) 0%, transparent 62%),
+    linear-gradient(180deg, #2c0912 0%, #140409 100%);
+}
+
+.ceremony__verdict {
+  margin-top: var(--sp-2);
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 7vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-transform: uppercase;
+}
+
+.ceremony--door .ceremony__verdict {
+  color: #7ee2ac;
+  text-shadow: 0 0 34px rgba(126, 226, 172, 0.5);
+}
+
+.ceremony--af .ceremony__verdict {
+  color: #ff8fa3;
+  text-shadow: 0 0 34px rgba(255, 143, 163, 0.45);
+}
+
+.ceremony__seal {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto var(--sp-4);
+  display: flex;
+}
+
+.ceremony__inner--reveal {
+  animation: verdict-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

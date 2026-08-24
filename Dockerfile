@@ -26,6 +26,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html login.html dashboard.html test.html results.html stats.html \
      leaderboard.html archief.html admin.html admin-questions.html \
      admin-tests.html admin-players.html admin-game.html admin-archief.html \
+     admin-executie.html \
      404.html /usr/share/nginx/html/
 COPY css/    /usr/share/nginx/html/css/
 COPY js/     /usr/share/nginx/html/js/

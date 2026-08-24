@@ -2,9 +2,12 @@
    archief.js — verzegelde enveloppen met hints
 
    De spelleider deelt codes uit (mondeling, op papier, als beloning). Wie een
-   code invoert, opent die envelop en houdt hem open. Welke enveloppen jij hebt
-   geopend staat in localStorage van je eigen toestel; raak je dat kwijt, dan
-   voer je de code gewoon opnieuw in.
+   code invoert, opent die envelop en houdt hem open.
+
+   Wat je hebt geopend staat op de server, in /inbox/opened-<speler>.json, en
+   daarnaast op je eigen toestel. Zo volgen je hints je naar een andere
+   telefoon en overleven ze een gewiste browser. Ligt de server er even uit,
+   dan werkt de lokale kopie gewoon door en wordt hij later bijgewerkt.
    ========================================================================== */
 
 (function (WIDM) {
@@ -29,11 +32,57 @@
     }
   }
 
+  function writeLocal(ids) {
+    try {
+      window.localStorage.setItem(storageKey(), JSON.stringify(ids));
+    } catch (error) {
+      /* vol of geblokkeerd; de server heeft hem dan nog wel */
+    }
+  }
+
   function markOpened(id) {
     const list = openedIds();
-    if (!list.includes(id)) {
-      list.push(id);
-      window.localStorage.setItem(storageKey(), JSON.stringify(list));
+    if (list.includes(id)) return;
+
+    list.push(id);
+    writeLocal(list);
+
+    WIDM.data.saveOpened(session.id, list).catch(function () {
+      // Niet erg: lokaal staat hij open, en bij de volgende sync gaat hij mee.
+      console.warn("[WIDM] geopende envelop niet naar de server gestuurd");
+    });
+  }
+
+  /**
+   * Haalt op wat er op de server staat en voegt dat samen met wat dit toestel
+   * al wist. Samenvoegen in plaats van overschrijven, zodat er nooit iets
+   * verdwijnt als iemand op twee toestellen bezig is geweest.
+   */
+  async function syncOpened() {
+    let remote = null;
+    try {
+      remote = await WIDM.data.readOpened(session.id);
+    } catch (error) {
+      return; // server onbereikbaar: lokale lijst blijft leidend
+    }
+
+    const local = openedIds();
+    if (!remote) {
+      // Nog niets op de server; wat hier staat alvast wegschrijven.
+      if (local.length) {
+        WIDM.data.saveOpened(session.id, local).catch(function () {});
+      }
+      return;
+    }
+
+    const merged = remote.slice();
+    local.forEach(function (id) {
+      if (!merged.includes(id)) merged.push(id);
+    });
+
+    writeLocal(merged);
+    if (merged.length !== remote.length) {
+      WIDM.data.saveOpened(session.id, merged).catch(function () {});
     }
   }
 
@@ -132,8 +181,9 @@
 
   WIDM.page({
     require: "player",
-    run: function (context) {
+    run: async function (context) {
       session = context.session;
+      await syncOpened();
       render();
     },
   });

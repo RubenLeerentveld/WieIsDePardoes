@@ -69,6 +69,23 @@
   50%      { text-shadow: 0 0 46px rgba(226, 194, 104, 0.55); }
 }
 
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  14%      { transform: scale(1.55); opacity: 1; }
+  28%      { transform: scale(1); opacity: 0.85; }
+  42%      { transform: scale(1.35); opacity: 1; }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.72; }
+  50%      { opacity: 1; }
+}
+
+@keyframes verdict-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 /* --------------------------------------------------------------------------
    Applied classes
    -------------------------------------------------------------------------- */

@@ -266,6 +266,26 @@ window.WIDM = window.WIDM || {};
     return true;
   }
 
+  /**
+   * Welke enveloppen een speler heeft geopend. Staat in /inbox/ naast de
+   * inzendingen, zodat hints een speler volgen als hij van toestel wisselt.
+   * Geeft null terug als er nog niets op de server staat.
+   */
+  async function readOpened(playerId) {
+    const list = await fetchJson(INBOX_DIR + "opened-" + playerId + ".json", true);
+    return Array.isArray(list) ? list : null;
+  }
+
+  async function saveOpened(playerId, ids) {
+    const response = await fetch(INBOX_DIR + "opened-" + playerId + ".json", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ids, null, 2) + "\n",
+    });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return true;
+  }
+
   /** Alles ophalen wat spelers hebben ingeleverd. */
   async function readInbox() {
     const listing = await fetchJson(INBOX_DIR, true);
@@ -273,7 +293,10 @@ window.WIDM = window.WIDM || {};
 
     const files = listing
       .filter(function (entry) {
-        return entry.type === "file" && /\.json$/i.test(entry.name);
+        // opened-*.json zijn geopende enveloppen, geen ingeleverde tests.
+        return entry.type === "file" &&
+          /\.json$/i.test(entry.name) &&
+          !/^opened-/i.test(entry.name);
       })
       .map(function (entry) {
         return entry.name;
@@ -283,7 +306,10 @@ window.WIDM = window.WIDM || {};
     for (const name of files) {
       // eslint-disable-next-line no-await-in-loop
       const record = await fetchJson(INBOX_DIR + name, true);
-      if (record && record.playerId) records.push(record);
+      // Alleen echte inzendingen: speler, dag en een lijst antwoorden.
+      if (record && record.playerId && record.day !== undefined && Array.isArray(record.answers)) {
+        records.push(record);
+      }
     }
     return records;
   }
@@ -354,6 +380,8 @@ window.WIDM = window.WIDM || {};
 
     submitToInbox: submitToInbox,
     readInbox: readInbox,
+    readOpened: readOpened,
+    saveOpened: saveOpened,
 
     exportFile: exportFile,
     exportBundle: exportBundle,
