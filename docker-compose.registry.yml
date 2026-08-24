@@ -1,21 +1,35 @@
-# Variant die een kant-en-klaar image van Docker Hub haalt in plaats van zelf
-# te bouwen. Gebruik dit alleen als je de GitHub Action uit
-# .github/workflows/docker-image.yml hebt ingesteld.
+# Haalt een kant-en-klaar image van Docker Hub in plaats van zelf te bouwen.
 #
-# Het normale docker-compose.yml bouwt op de server en blijft gewoon werken;
-# dit bestand is een alternatief, geen vervanging.
+# Dit is het bestand voor een Project in Synology Container Manager:
+#   Container Manager -> Project -> Create -> Create docker-compose.yml
+# Plak de inhoud, pas de twee paden en het wachtwoord aan, en klik Build.
 #
-# In Portainer: Stacks -> Add stack -> Web editor, plak dit, en vervang
-# JOUW-DOCKERHUB-NAAM. Staat het image op private, voeg dan eerst je Docker
-# Hub-inloggegevens toe onder Registries.
+# Bijwerken doe je daarna met: rechtsklik op het Project -> Stop,
+# rechtsklik -> Build. Dat haalt de nieuwste :latest op en zet de container
+# opnieuw op, met behoud van alles wat hieronder staat.
 
 services:
   widm:
     image: docker.io/JOUW-DOCKERHUB-NAAM/wie-is-de-mol:latest
     container_name: wie-is-de-mol
+    restart: unless-stopped
+
     ports:
       - "49153:80"
-    restart: unless-stopped
+
+    environment:
+      # Hiermee ontgrendel je het archief om te kunnen opslaan.
+      - WRITE_USER=spelleider
+      - WRITE_PASSWORD=password
+
+    volumes:
+      # De levende speldata en de ingeleverde tests. Zonder deze twee ben je
+      # alles kwijt zodra de container opnieuw wordt opgebouwd.
+      #
+      # Pas de paden links aan naar je eigen gedeelde map. Let op de
+      # hoofdletter D als je share "Docker" heet.
+      - /volume1/Docker/pardoes/live:/usr/share/nginx/html/live
+      - /volume1/Docker/pardoes/inbox:/usr/share/nginx/html/inbox
 
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/data/game.json"]
@@ -24,5 +38,7 @@ services:
       retries: 3
       start_period: 5s
 
-    # Geen volume: de speldata zit in het image. Nieuwe data uitrollen gaat via
-    # committen -> Action bouwt -> "Pull and redeploy" in Portainer.
+# De uitgangsdata in data/ komt uit het image en wordt bewust niet gekoppeld:
+# de site leest live/ eerst en valt daarop terug zolang er nog niets is
+# opgeslagen. Koppel je een lege map over data/ heen, dan toont de site
+# "Het archief blijft gesloten".

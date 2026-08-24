@@ -7,6 +7,16 @@ services:
       - "49153:80"
     restart: unless-stopped
 
+    environment:
+      - WRITE_USER=spelleider
+      - WRITE_PASSWORD=password
+
+    volumes:
+      # Schrijfbare mappen. Zonder deze twee verdwijnt alles wat de spelleider
+      # opslaat zodra de container opnieuw wordt opgebouwd.
+      - ./live:/usr/share/nginx/html/live
+      - ./inbox:/usr/share/nginx/html/inbox
+
     # Laat Portainer zien of het écht werkt: dit haalt game.json op, dus een
     # groene status betekent "nginx draait én de speldata wordt geserveerd".
     healthcheck:
